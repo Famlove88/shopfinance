@@ -102,6 +102,27 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--dark);min-h
   font-size:.8rem;cursor:pointer;transition:background .2s}
 .btn-logout:hover{background:rgba(192,57,43,.28)}
 
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-tabs{display:none}
+@media(max-width:768px){
+  .mobile-tabs{
+    display:flex;position:fixed;bottom:0;right:0;left:0;z-index:250;
+    background:var(--white);border-top:1px solid var(--gray2);
+    box-shadow:0 -4px 16px rgba(0,0,0,.08);
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+  }
+  .mobile-tabs::-webkit-scrollbar{display:none}
+  .mtab{flex:1 0 auto;min-width:64px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:.15rem;padding:.5rem .4rem;background:none;border:none;
+    font-family:inherit;color:var(--gray3);cursor:pointer;white-space:nowrap}
+  .mtab .mi{font-size:1.05rem;line-height:1}
+  .mtab .mt{font-size:.6rem;font-weight:700}
+  .mtab.on{color:var(--navy)}
+  .mtab.on .mi{transform:translateY(-1px)}
+  body{padding-bottom:0}
+  .content{padding-bottom:5rem}
+}
+
 /* ── MAIN ── */
 .main{margin-right:230px;display:flex;flex-direction:column;min-height:100vh}
 
@@ -353,6 +374,7 @@ tbody tr:hover td{background:var(--gray1)}
         <button class="tabb" data-tab="pend" onclick="goTab('pend',this)">⏳ تأكيد</button>
         <button class="tabb" data-tab="recon" onclick="goTab('recon',this)">🧮 مطابقة</button>
         <button class="tabb" data-tab="stmt" onclick="goTab('stmt',this)">كشف الحساب</button>
+        <button class="tabb" data-tab="report" onclick="goTab('report',this)">📈 تقرير</button>
         <button class="tabb" data-tab="pdf" onclick="goTab('pdf',this)">🖨️ PDF</button>
       </div>
     </div>
@@ -586,6 +608,78 @@ tbody tr:hover td{background:var(--gray1)}
         </div>
       </div>
 
+      <!-- REPORT -->
+      <div id="vReport" class="view">
+        <div class="form-panel">
+          <h3>📈 تقرير عدد الحركات</h3>
+          <div class="fgrid">
+            <div class="fg">
+              <label>نوع الفترة</label>
+              <select id="rpPeriod" onchange="onReportPeriodChange()">
+                <option value="today">اليوم</option>
+                <option value="week">آخر 7 أيام</option>
+                <option value="month">هذا الشهر</option>
+                <option value="year">هذه السنة</option>
+                <option value="custom">فترة محددة</option>
+              </select>
+            </div>
+            <div class="fg" id="rpFromG" style="display:none">
+              <label>من تاريخ</label>
+              <input type="date" id="rpFrom"/>
+            </div>
+            <div class="fg" id="rpToG" style="display:none">
+              <label>إلى تاريخ</label>
+              <input type="date" id="rpTo"/>
+            </div>
+            <div class="fg">
+              <label>تجميع حسب</label>
+              <select id="rpGroup">
+                <option value="day">يومي</option>
+                <option value="month">شهري</option>
+                <option value="none">إجمالي فقط (بدون تجميع)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-btns">
+            <button class="btn btn-navy" onclick="renderReport()">📊 عرض التقرير</button>
+          </div>
+        </div>
+
+        <div class="kpi-row" id="rpKpis">
+          <div class="kpi k-in">
+            <div class="kpi-lbl">عدد عمليات الدخول</div>
+            <div class="kpi-val pos" id="rpCountIn">0</div>
+            <div class="kpi-note" id="rpSumIn"></div>
+          </div>
+          <div class="kpi k-out">
+            <div class="kpi-lbl">عدد عمليات الخروج</div>
+            <div class="kpi-val neg" id="rpCountOut">0</div>
+            <div class="kpi-note" id="rpSumOut"></div>
+          </div>
+          <div class="kpi k-bal">
+            <div class="kpi-lbl">إجمالي عدد الحركات</div>
+            <div class="kpi-val" id="rpCountTotal">0</div>
+            <div class="kpi-note" id="rpRangeNote"></div>
+          </div>
+          <div class="kpi k-pend">
+            <div class="kpi-lbl">منها معلقة</div>
+            <div class="kpi-val amb" id="rpCountPend">0</div>
+            <div class="kpi-note" id="rpCountConf"></div>
+          </div>
+        </div>
+
+        <div class="box">
+          <div class="box-hd"><div class="box-title">التفصيل بحسب التجميع</div></div>
+          <div class="tbl-wrap">
+            <table><thead><tr>
+              <th>الفترة</th><th>دخول</th><th>خروج</th><th>الإجمالي</th><th>مبلغ الدخول</th><th>مبلغ الخروج</th>
+            </tr></thead>
+            <tbody id="rpTbody"><tr class="empty-row"><td colspan="6">اضغط "عرض التقرير"</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- PDF -->
       <div id="vPdf" class="view">
         <div class="form-panel">
@@ -628,6 +722,17 @@ tbody tr:hover td{background:var(--gray1)}
 
     </div><!-- /content -->
   </div><!-- /main -->
+
+  <!-- MOBILE BOTTOM NAV -->
+  <div class="mobile-tabs" id="mobileTabs">
+    <button class="mtab on" data-tab="dash" onclick="goTab('dash',this)"><span class="mi">🏠</span><span class="mt">الرئيسية</span></button>
+    <button class="mtab" data-tab="op" onclick="goTab('op',this)"><span class="mi">➕</span><span class="mt">عملية</span></button>
+    <button class="mtab" data-tab="pend" onclick="goTab('pend',this)"><span class="mi">⏳</span><span class="mt">تأكيد</span></button>
+    <button class="mtab" data-tab="recon" onclick="goTab('recon',this)"><span class="mi">🧮</span><span class="mt">مطابقة</span></button>
+    <button class="mtab" data-tab="stmt" onclick="goTab('stmt',this)"><span class="mi">📋</span><span class="mt">كشف</span></button>
+    <button class="mtab" data-tab="report" onclick="goTab('report',this)"><span class="mi">📈</span><span class="mt">تقرير</span></button>
+    <button class="mtab" data-tab="pdf" onclick="goTab('pdf',this)"><span class="mi">🖨️</span><span class="mt">PDF</span></button>
+  </div>
 </div><!-- /appWrap -->
 
 <!-- ─── MODALS ─── -->
@@ -942,7 +1047,7 @@ function pickClient(id){
 // ═══════════════════════════════════════════════
 //  VIEWS / TABS
 // ═══════════════════════════════════════════════
-const VIEWS={ dash:'vDash', op:'vOp', pend:'vPend', recon:'vRecon', stmt:'vStmt', pdf:'vPdf' };
+const VIEWS={ dash:'vDash', op:'vOp', pend:'vPend', recon:'vRecon', stmt:'vStmt', report:'vReport', pdf:'vPdf' };
 
 function showView(id){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
@@ -952,18 +1057,23 @@ function showView(id){
 
 function setTabActive(tab){
   document.querySelectorAll('.tabb').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('on'));
   const b=document.querySelector(`.tabb[data-tab="${tab}"]`);
   if(b)b.classList.add('on');
+  const m=document.querySelector(`.mtab[data-tab="${tab}"]`);
+  if(m)m.classList.add('on');
 }
 
 function goTab(tab, btn){
   if(!activeId){ toast('اختر عميلاً أولاً','err'); return }
   setTabActive(tab);
   showView(VIEWS[tab]);
-  if(tab==='dash')  refreshDash();
-  if(tab==='pend')  renderPend();
-  if(tab==='recon') renderRecon();
-  if(tab==='stmt')  renderStmt();
+  if(tab==='dash')   refreshDash();
+  if(tab==='pend')   renderPend();
+  if(tab==='recon')  renderRecon();
+  if(tab==='stmt')   renderStmt();
+  if(tab==='report') initReport();
+  window.scrollTo(0,0);
 }
 
 // ═══════════════════════════════════════════════
@@ -1412,6 +1522,100 @@ function onPeriodChange(){
   const v=el('pPeriod').value;
   el('pFromG').style.display=v==='custom'?'block':'none';
   el('pToG').style.display=v==='custom'?'block':'none';
+}
+
+// ═══════════════════════════════════════════════
+//  REPORT (تقرير عدد الحركات)
+// ═══════════════════════════════════════════════
+function onReportPeriodChange(){
+  const v=el('rpPeriod').value;
+  el('rpFromG').style.display=v==='custom'?'block':'none';
+  el('rpToG').style.display=v==='custom'?'block':'none';
+}
+
+function initReport(){
+  if(!el('rpFrom').value){
+    const today=dateStr(new Date());
+    el('rpFrom').value=today; el('rpTo').value=today;
+  }
+  renderReport();
+}
+
+function getReportOps(){
+  const c=client(); if(!c)return[];
+  let ops=[...(c.ops||[])];
+  const period=el('rpPeriod').value;
+  const today=dateStr(new Date());
+  let rangeLabel='';
+  if(period==='today'){ ops=ops.filter(o=>o.date===today); rangeLabel='اليوم: '+fmtD(today); }
+  else if(period==='week'){ const w=dateStr(new Date(Date.now()-6*864e5)); ops=ops.filter(o=>o.date>=w); rangeLabel='آخر 7 أيام: '+fmtD(w)+' → '+fmtD(today); }
+  else if(period==='month'){ ops=ops.filter(o=>o.date.slice(0,7)===today.slice(0,7)); rangeLabel='هذا الشهر: '+today.slice(0,7); }
+  else if(period==='year'){ ops=ops.filter(o=>o.date.slice(0,4)===today.slice(0,4)); rangeLabel='هذه السنة: '+today.slice(0,4); }
+  else if(period==='custom'){
+    const f=el('rpFrom').value,t=el('rpTo').value;
+    if(f)ops=ops.filter(o=>o.date>=f);
+    if(t)ops=ops.filter(o=>o.date<=t);
+    rangeLabel='من '+(f?fmtD(f):'—')+' إلى '+(t?fmtD(t):'—');
+  }
+  return {ops:ops.sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time)), rangeLabel};
+}
+
+function renderReport(){
+  const c=client(); if(!c)return;
+  const {ops,rangeLabel}=getReportOps();
+  const inOps=ops.filter(o=>o.type==='in');
+  const outOps=ops.filter(o=>o.type==='out');
+  const confOps=ops.filter(o=>o.status==='confirmed');
+  const pendOps=ops.filter(o=>o.status==='pending');
+  const sumIn=inOps.reduce((s,o)=>s+o.amount,0);
+  const sumOut=outOps.reduce((s,o)=>s+o.amount,0);
+
+  set('rpCountIn',inOps.length);
+  set('rpSumIn','بقيمة '+fmt(sumIn));
+  set('rpCountOut',outOps.length);
+  set('rpSumOut','بقيمة '+fmt(sumOut));
+  set('rpCountTotal',ops.length);
+  set('rpRangeNote',rangeLabel);
+  set('rpCountPend',pendOps.length);
+  set('rpCountConf',confOps.length+' مؤكدة');
+
+  const groupBy=el('rpGroup').value;
+  const tb=el('rpTbody');
+  if(!ops.length){ tb.innerHTML='<tr class="empty-row"><td colspan="6">لا توجد حركات في هذه الفترة</td></tr>'; return }
+
+  if(groupBy==='none'){
+    tb.innerHTML=`<tr>
+      <td>${rangeLabel}</td>
+      <td style="color:var(--green);font-weight:700">${inOps.length}</td>
+      <td style="color:var(--red);font-weight:700">${outOps.length}</td>
+      <td style="font-weight:800">${ops.length}</td>
+      <td style="color:var(--green)">${fmt(sumIn)}</td>
+      <td style="color:var(--red)">${fmt(sumOut)}</td>
+    </tr>`;
+    return;
+  }
+
+  const key=o=>groupBy==='month'?o.date.slice(0,7):o.date;
+  const groups={};
+  ops.forEach(o=>{
+    const k=key(o);
+    if(!groups[k])groups[k]={in:0,out:0,sumIn:0,sumOut:0};
+    if(o.type==='in'){ groups[k].in++; groups[k].sumIn+=o.amount; }
+    else{ groups[k].out++; groups[k].sumOut+=o.amount; }
+  });
+  const keys=Object.keys(groups).sort((a,b)=>b.localeCompare(a));
+  tb.innerHTML=keys.map(k=>{
+    const g=groups[k];
+    const label=groupBy==='month'?k:fmtD(k);
+    return `<tr>
+      <td>${label}</td>
+      <td style="color:var(--green);font-weight:700">${g.in}</td>
+      <td style="color:var(--red);font-weight:700">${g.out}</td>
+      <td style="font-weight:800">${g.in+g.out}</td>
+      <td style="color:var(--green)">${fmt(g.sumIn)}</td>
+      <td style="color:var(--red)">${fmt(g.sumOut)}</td>
+    </tr>`;
+  }).join('');
 }
 
 function getPdfOps(){
