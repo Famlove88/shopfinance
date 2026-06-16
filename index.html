@@ -995,8 +995,8 @@ function sendBalanceWA(){
   const dateP=dateStr(now);
   const timeP=now.toTimeString().slice(0,5);
   const accLine=c.sub?`${c.name} - ${c.sub}`:c.name;
-  const side=bal>=0?'(لكم)':'(علينا)';
-  const sep='\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501';
+  const side=bal>=0?'(لكم)':'(لنا)';
+  const sep='\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605';
   const e1='\uD83D\uDCCA'; // 📊
   const e2='\uD83D\uDD50'; // 🕐
   const e3='\uD83D\uDCB5'; // 💵
