@@ -127,8 +127,9 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .main{margin-right:230px;display:flex;flex-direction:column;min-height:100vh}
 
 /* ── TOPBAR ── */
-.topbar{background:var(--white);border-bottom:1px solid var(--gray2);padding:.75rem 1.2rem;
-  display:flex;align-items:center;gap:1rem;position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.topbar{background:var(--white);border-bottom:1px solid var(--gray2);
+  display:flex;flex-direction:column;position:sticky;top:0;z-index:200;box-shadow:var(--shadow)}
+.topbar-row1{padding:.75rem 1.2rem;display:flex;align-items:center;gap:1rem}
 .tb-ham{display:none;background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--dark)}
 .tb-client{flex:1;min-width:0}
 .tb-cname{font-size:.95rem;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -138,6 +139,28 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--dark);min-h
   font-family:inherit;font-size:.78rem;font-weight:700;color:var(--gray4);
   cursor:pointer;transition:all .2s;white-space:nowrap}
 .tabb.on{background:var(--white);color:var(--navy);box-shadow:var(--shadow)}
+
+/* ── CURRENCY TABS ── */
+.cur-tabs-row{padding:.5rem 1.2rem;display:flex;align-items:center;gap:.5rem;
+  border-top:1px solid var(--gray2);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.cur-tabs-row::-webkit-scrollbar{height:0}
+.curb{background:var(--gray1);border:1.5px solid var(--gray2);border-radius:20px;
+  padding:.35rem .9rem;font-family:inherit;font-size:.78rem;font-weight:700;
+  color:var(--gray4);cursor:pointer;transition:all .18s;white-space:nowrap;
+  display:flex;align-items:center;gap:.35rem;flex-shrink:0}
+.curb .cb-bal{font-size:.72rem;font-weight:800;opacity:.85}
+.curb.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.curb-add{background:none;border:1.5px dashed var(--gray3);border-radius:20px;
+  padding:.35rem .8rem;font-family:inherit;font-size:.76rem;font-weight:700;
+  color:var(--gray3);cursor:pointer;flex-shrink:0;transition:all .18s}
+.curb-add:hover{border-color:var(--teal);color:var(--teal)}
+@media(max-width:768px){.cur-tabs-row{padding:.5rem .8rem}}
+
+/* ── CLIENT SETTINGS CURRENCY ROW ── */
+.cs-cur-row{display:flex;align-items:center;justify-content:space-between;
+  padding:.55rem .7rem;border:1.5px solid var(--gray2);border-radius:var(--radius2);margin-bottom:.5rem}
+.cs-cur-info{font-size:.82rem;font-weight:700;color:var(--dark)}
+.cs-cur-bal{font-size:.72rem;color:var(--gray3);margin-top:.1rem}
 
 /* ── CONTENT ── */
 .content{padding:1.2rem;flex:1}
@@ -363,20 +386,23 @@ tbody tr:hover td{background:var(--gray1)}
   <div class="main">
     <!-- TOPBAR -->
     <div class="topbar">
-      <button class="tb-ham" onclick="sbOpen()">☰</button>
-      <div class="tb-client">
-        <div class="tb-cname" id="tbName">اختر عميلاً</div>
-        <div class="tb-csub" id="tbSub"></div>
+      <div class="topbar-row1">
+        <button class="tb-ham" onclick="sbOpen()">☰</button>
+        <div class="tb-client">
+          <div class="tb-cname" id="tbName">اختر عميلاً</div>
+          <div class="tb-csub" id="tbSub"></div>
+        </div>
+        <div class="tb-tabs">
+          <button class="tabb on" data-tab="dash" onclick="goTab('dash',this)">لوحة التحكم</button>
+          <button class="tabb" data-tab="op" onclick="goTab('op',this)">➕ عملية جديدة</button>
+          <button class="tabb" data-tab="pend" onclick="goTab('pend',this)">⏳ تأكيد</button>
+          <button class="tabb" data-tab="recon" onclick="goTab('recon',this)">🧮 مطابقة</button>
+          <button class="tabb" data-tab="stmt" onclick="goTab('stmt',this)">كشف الحساب</button>
+          <button class="tabb" data-tab="report" onclick="goTab('report',this)">📈 تقرير</button>
+          <button class="tabb" data-tab="pdf" onclick="goTab('pdf',this)">🖨️ PDF</button>
+        </div>
       </div>
-      <div class="tb-tabs">
-        <button class="tabb on" data-tab="dash" onclick="goTab('dash',this)">لوحة التحكم</button>
-        <button class="tabb" data-tab="op" onclick="goTab('op',this)">➕ عملية جديدة</button>
-        <button class="tabb" data-tab="pend" onclick="goTab('pend',this)">⏳ تأكيد</button>
-        <button class="tabb" data-tab="recon" onclick="goTab('recon',this)">🧮 مطابقة</button>
-        <button class="tabb" data-tab="stmt" onclick="goTab('stmt',this)">كشف الحساب</button>
-        <button class="tabb" data-tab="report" onclick="goTab('report',this)">📈 تقرير</button>
-        <button class="tabb" data-tab="pdf" onclick="goTab('pdf',this)">🖨️ PDF</button>
-      </div>
+      <div class="cur-tabs-row" id="curTabsRow"></div>
     </div>
 
     <!-- CONTENT -->
@@ -772,7 +798,12 @@ tbody tr:hover td{background:var(--gray1)}
     <div class="modal-hd"><h3>إضافة عميل جديد</h3><button class="modal-x" onclick="closeM('mAddC')">✕</button></div>
     <div class="modal-body">
       <div class="fg"><label>اسم العميل *</label><input type="text" id="cName" placeholder="الاسم الكامل"/></div>
-      <div class="fg" style="margin-top:.8rem"><label>الاسم الفرعي / الحساب</label><input type="text" id="cSub" placeholder="مثال: حساب USD"/></div>
+      <div class="fg" style="margin-top:.8rem"><label>الاسم الفرعي / الحساب</label><input type="text" id="cSub" placeholder="مثال: حساب تجاري"/></div>
+      <div class="fg" style="margin-top:.8rem">
+        <label>العملة / العملات *</label>
+        <div class="chips" id="curPickAdd"></div>
+        <div class="hint">اختر عملة واحدة أو أكثر — يمكنك إضافة عملات أخرى لاحقاً</div>
+      </div>
       <div class="fg" style="margin-top:.8rem">
         <label>اللون</label>
         <div class="chips" id="colorPick">
@@ -792,6 +823,28 @@ tbody tr:hover td{background:var(--gray1)}
   </div>
 </div>
 
+<!-- ADD CURRENCY TO EXISTING CLIENT -->
+<div class="overlay" id="mAddCur">
+  <div class="modal">
+    <div class="modal-hd"><h3>إضافة عملة جديدة للعميل</h3><button class="modal-x" onclick="closeM('mAddCur')">✕</button></div>
+    <div class="modal-body">
+      <div class="fg">
+        <label>اختر العملة</label>
+        <div class="chips" id="curPickNew"></div>
+      </div>
+      <div class="fg" id="customCurWrap" style="margin-top:.9rem;display:none">
+        <label>رمز العملة المخصصة (مثال: AED)</label>
+        <input type="text" id="customCurCode" placeholder="رمز العملة" maxlength="6"/>
+        <div class="fg" style="margin-top:.6rem"><label>علامة العملة (مثال: د.إ)</label><input type="text" id="customCurSym" placeholder="علامة العملة" maxlength="6"/></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-navy" onclick="doAddCurrency()">إضافة العملة</button>
+      <button class="btn btn-ghost" onclick="closeM('mAddCur')">إلغاء</button>
+    </div>
+  </div>
+</div>
+
 <!-- CLIENT SETTINGS -->
 <div class="overlay" id="mCS">
   <div class="modal">
@@ -799,6 +852,10 @@ tbody tr:hover td{background:var(--gray1)}
     <div class="modal-body">
       <div class="fg"><label>الاسم</label><input type="text" id="csName"/></div>
       <div class="fg" style="margin-top:.8rem"><label>الاسم الفرعي</label><input type="text" id="csSub"/></div>
+      <div class="fg" style="margin-top:.9rem">
+        <label>عملات العميل</label>
+        <div id="csCurList"></div>
+      </div>
     </div>
     <div class="modal-ft">
       <button class="btn btn-navy" onclick="doSaveCS()">حفظ</button>
@@ -859,8 +916,14 @@ tbody tr:hover td{background:var(--gray1)}
 //  DATA
 // ═══════════════════════════════════════════════
 const USERS = {'admin':'1234','مختار':'0000'};
+const CURRENCIES = {
+  USD:{symbol:'$', name:'دولار أمريكي'},
+  EUR:{symbol:'€', name:'يورو'},
+  LBP:{symbol:'ل.ل', name:'ليرة لبنانية'}
+};
 let DB = [];          // array of clients
 let activeId = null;  // current client id
+let activeCur = null;  // current active currency code for the active client
 let opType = 'in';    // new op type
 let eStatus = 'pending'; // edit modal status
 let fType = 'all';    // statement filter
@@ -868,6 +931,8 @@ let fStatus = 'all';
 let sortCol = 'date'; // statement sort
 let sortDir = 1;      // 1=asc -1=desc
 let selColor = '#1A3660'; // add client color
+let selAddCurs = ['USD']; // currencies picked when adding a new client
+let pickedNewCur = null;  // currency picked in "add currency" modal
 
 const FS_DOC = dbFS.collection('makhtar').doc('v4'); // single document holding the whole DB array
 let saveTimer=null;
@@ -887,11 +952,45 @@ async function load(){
     if(snap.exists && snap.data().data){
       DB=JSON.parse(snap.data().data);
       try{localStorage.setItem('makhtar_v4',snap.data().data)}catch(e){}
+      migrateDB();
       return;
     }
   }catch(err){ console.error('Firestore load failed:',err); }
   // fallback to localStorage if Firestore is empty/unreachable
   try{const d=localStorage.getItem('makhtar_v4');if(d)DB=JSON.parse(d)}catch(e){DB=[]}
+  migrateDB();
+}
+
+// ─── MIGRATION: old single-currency clients → multi-currency structure ───
+// Old shape:  { id, name, sub, color, ops, rollover, reconciliations }
+// New shape:  { id, name, sub, color, currencies:[ {code, symbol, ops, rollover, reconciliations} ] }
+function migrateDB(){
+  let changed=false;
+  DB.forEach(c=>{
+    if(!Array.isArray(c.currencies)){
+      const oldOps=c.ops||[];
+      const oldRoll=c.rollover||null;
+      const oldRecon=c.reconciliations||[];
+      c.currencies=[{
+        code:'USD',
+        symbol:'$',
+        ops:oldOps,
+        rollover:oldRoll,
+        reconciliations:oldRecon
+      }];
+      delete c.ops; delete c.rollover; delete c.reconciliations;
+      changed=true;
+    }
+  });
+  if(changed)save();
+}
+
+// ─── currency helpers ───
+function curSymbol(code){ return (CURRENCIES[code]&&CURRENCIES[code].symbol)||code; }
+function curObj(c,code){ return (c.currencies||[]).find(x=>x.code===code)||null; }
+function activeCurObj(){
+  const c=client(); if(!c)return null;
+  return curObj(c,activeCur);
 }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6) }
 function client(){ return DB.find(c=>c.id===activeId)||null }
@@ -901,10 +1000,10 @@ function nowTime(){ return new Date().toTimeString().slice(0,5) }
 // ═══════════════════════════════════════════════
 //  FORMAT
 // ═══════════════════════════════════════════════
-function fmt(n){
-  if(isNaN(n))return '$0.00';
+function fmt(n,sym){
+  if(isNaN(n))return (sym||'$')+'0.00';
   const sign=n<0?'-':'';
-  return sign+'$'+Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+  return sign+(sym||'$')+Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 }
 function fmtD(s){ if(!s)return ''; const[y,m,d]=s.split('-'); return d+'/'+m+'/'+y }
 
@@ -939,6 +1038,7 @@ function doLogout(){
   document.getElementById('lu').value='';
   document.getElementById('lp').value='';
   activeId=null;
+  activeCur=null;
 }
 document.getElementById('lp').onkeydown=e=>{ if(e.key==='Enter')doLogin() };
 document.getElementById('lu').onkeydown=e=>{ if(e.key==='Enter')document.getElementById('lp').focus() };
@@ -953,35 +1053,39 @@ function buildSidebar(){
   const el=document.getElementById('clientList');
   if(!DB.length){ el.innerHTML='<div style="text-align:center;padding:1.2rem;color:rgba(255,255,255,.35);font-size:.75rem">لا يوجد عملاء</div>'; return }
   el.innerHTML=DB.map(c=>{
-    const bal=calcBalAll(c);
-    const col=bal>=0?'#4ade80':'#f87171';
+    const curs=c.currencies||[];
     const ini=(c.name||'?').slice(0,2);
     const act=c.id===activeId?' active':'';
+    const balsHtml=curs.map(cur=>{
+      const bal=calcBalAll(cur);
+      const col=bal>=0?'#4ade80':'#f87171';
+      return `<div class="ci-bal" style="color:${col};font-size:.68rem">${cur.code} ${fmt(Math.abs(bal),curSymbol(cur.code))}</div>`;
+    }).join('');
     return `<div class="ci${act}" onclick="pickClient('${c.id}')">
       <div class="ci-av" style="background:${c.color||'#1A3660'}22;color:${c.color||'#1A3660'}">${ini}</div>
       <div class="ci-info">
         <div class="ci-name">${c.name}</div>
         <div class="ci-sub">${c.sub||'حساب عام'}</div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.2rem">
-        <div class="ci-bal" style="color:${col}">${fmt(Math.abs(bal))}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.15rem">
+        ${balsHtml||'<div class="ci-bal" style="color:rgba(255,255,255,.3);font-size:.68rem">—</div>'}
         <button class="ci-gear" onclick="event.stopPropagation();openCS('${c.id}')">⚙</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function calcBal(c){
-  if(!c)return 0;
-  const roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
-  return roll+(c.ops||[]).filter(o=>o.status==='confirmed').reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
+function calcBal(cur){
+  if(!cur)return 0;
+  const roll=cur.rollover?parseFloat(cur.rollover.amount)||0:0;
+  return roll+(cur.ops||[]).filter(o=>o.status==='confirmed').reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
 }
 // الرصيد الكلي = الرصيد المؤكد (دخول مؤكد - خروج مؤكد) - قيمة الخروج المعلق
 // (الخروج معلقاً أو مؤكداً هو دين علينا للعميل بنفس الاتجاه، فيُطرح من الرصيد كما يُطرح الخروج المؤكد)
-function calcBalAll(c){
-  if(!c)return 0;
-  const confBal=calcBal(c);
-  const pendOut=(c.ops||[]).filter(o=>o.type==='out'&&o.status==='pending').reduce((s,o)=>s+o.amount,0);
+function calcBalAll(cur){
+  if(!cur)return 0;
+  const confBal=calcBal(cur);
+  const pendOut=(cur.ops||[]).filter(o=>o.type==='out'&&o.status==='pending').reduce((s,o)=>s+o.amount,0);
   return confBal-pendOut;
 }
 
@@ -990,20 +1094,28 @@ function calcBalAll(c){
 // ═══════════════════════════════════════════════
 function sendBalanceWA(){
   const c=client(); if(!c){ toast('اختر عميلاً أولاً','err'); return }
-  const bal=calcBalAll(c);
+  const curs=(c.currencies||[]).filter(cur=>Math.abs(calcBalAll(cur))>=0.005);
+  if(!curs.length){ toast('لا توجد أرصدة لإرسالها (كل الأرصدة صفر)','err'); return }
   const now=new Date();
   const dateP=dateStr(now);
   const timeP=now.toTimeString().slice(0,5);
   const accLine=c.sub?`${c.name} - ${c.sub}`:c.name;
-  const side=bal>=0?'(لكم)':'(لنا)';
   const sep='\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605\u2605';
+  const sep2='\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500';
   const e1='\uD83D\uDCCA'; // 📊
   const e2='\uD83D\uDD50'; // 🕐
   const e3='\uD83D\uDCB5'; // 💵
   const e4='\uD83D\uDCE9'; // 📩
   const e5='\uD83C\uDF39'; // 🌹
-  // fmt() already adds $ sign, strip it for clean display
-  const balStr=fmt(Math.abs(bal)).replace(/^\-?\$?/,'$');
+
+  const curLines=curs.map(cur=>{
+    const sym=curSymbol(cur.code);
+    const bal=calcBalAll(cur);
+    const side=bal>=0?'(لكم)':'(لنا)';
+    const balStr=fmt(Math.abs(bal),sym).replace(/^\-?/,'');
+    return `${e3} ${cur.code}\n${balStr} ${side}`;
+  }).join(`\n${sep2}\n`);
+
   const msg=
 `\u0627\u0644\u0633\u0644\u0627\u0645 \u0639\u0644\u064A\u0643\u0645 \u0648\u0631\u062D\u0645\u0629 \u0627\u0644\u0644\u0647 \u0648\u0628\u0631\u0643\u0627\u062A\u0647
 ${sep}
@@ -1015,8 +1127,7 @@ ${accLine}
 \u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0645\u0637\u0627\u0628\u0642\u0629 ${e2}
 ${dateP}   ${timeP}
 ${sep}
-${e3} \u0627\u0644\u0631\u0635\u064A\u062F \u0628\u0627\u0644\u062F\u0648\u0644\u0627\u0631 \u0627\u0644\u0623\u0645\u0631\u064A\u0643\u064A
-${balStr} ${side}
+${curLines}
 ${sep}
 ${e4} \u0646\u0631\u062C\u0648 \u0627\u0644\u062A\u0643\u0631\u0645 \u0628\u0645\u0631\u0627\u062C\u0639\u0629 \u0627\u0644\u0645\u0637\u0627\u0628\u0642\u0629 \u0648\u062A\u0623\u0643\u064A\u062F\u0647\u0627
 \u0645\u0639 \u0641\u0627\u0626\u0642 \u0627\u0644\u0627\u062D\u062A\u0631\u0627\u0645 \u0648\u0627\u0644\u062A\u0642\u062F\u064A\u0631 ${e5}
@@ -1034,6 +1145,12 @@ function pickClient(id){
   if(!c)return;
   document.getElementById('tbName').textContent=c.name;
   document.getElementById('tbSub').textContent=c.sub||'';
+  // pick first currency by default (or keep current if it still exists on this client)
+  const curs=c.currencies||[];
+  if(!curs.find(x=>x.code===activeCur)){
+    activeCur=curs.length?curs[0].code:null;
+  }
+  buildCurTabs();
   buildSidebar();
   sbClose();
   showView('vDash');
@@ -1042,6 +1159,36 @@ function pickClient(id){
   // reset op form defaults
   document.getElementById('opDate').value=dateStr(new Date());
   document.getElementById('opTime').value=nowTime();
+}
+
+// ═══════════════════════════════════════════════
+//  CURRENCY TABS (per client)
+// ═══════════════════════════════════════════════
+function buildCurTabs(){
+  const c=client();
+  const row=el('curTabsRow');
+  if(!c||!(c.currencies||[]).length){ row.innerHTML=''; return }
+  const tabsHtml=c.currencies.map(cur=>{
+    const bal=calcBalAll(cur);
+    const on=cur.code===activeCur?' on':'';
+    return `<button class="curb${on}" onclick="pickCurrency('${cur.code}')">
+      <span>${cur.code}</span><span class="cb-bal">${fmt(bal,curSymbol(cur.code))}</span>
+    </button>`;
+  }).join('');
+  row.innerHTML=tabsHtml+`<button class="curb-add" onclick="openAddCurrency()">+ عملة</button>`;
+}
+
+function pickCurrency(code){
+  activeCur=code;
+  buildCurTabs();
+  // refresh whichever view is currently visible
+  const onTab=document.querySelector('.tabb.on,.mtab.on');
+  const tab=onTab?onTab.getAttribute('data-tab'):'dash';
+  if(tab==='dash')   refreshDash();
+  if(tab==='pend')   renderPend();
+  if(tab==='recon')  renderRecon();
+  if(tab==='stmt')   renderStmt();
+  if(tab==='report') renderReport();
 }
 
 // ═══════════════════════════════════════════════
@@ -1081,7 +1228,19 @@ function goTab(tab, btn){
 // ═══════════════════════════════════════════════
 function refreshDash(){
   const c=client(); if(!c)return;
-  const ops=c.ops||[];
+  const cur=activeCurObj();
+  if(!cur){
+    set('kBal',fmt(0)); set('kRoll',fmt(0)); set('kBalNote','');
+    set('kIn',fmt(0)); set('kInN','');
+    set('kOut',fmt(0)); set('kOutN','');
+    set('kPend',fmt(0)); set('kPendN','');
+    set('kBalAll',fmt(0));
+    el('dashRecent').innerHTML='<tr class="empty-row"><td colspan="5">أضف عملة لهذا العميل أولاً</td></tr>';
+    el('dashPend').innerHTML='<div style="text-align:center;padding:1.5rem;color:var(--gray3);font-size:.8rem">لا توجد عملة محددة</div>';
+    return;
+  }
+  const sym=curSymbol(cur.code);
+  const ops=cur.ops||[];
   const conf=ops.filter(o=>o.status==='confirmed');
   const pend=ops.filter(o=>o.status==='pending');
   const inOps=conf.filter(o=>o.type==='in');
@@ -1089,17 +1248,17 @@ function refreshDash(){
   const tIn=inOps.reduce((s,o)=>s+o.amount,0);
   const tOut=outOps.reduce((s,o)=>s+o.amount,0);
   const tPend=pend.reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
-  const roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
+  const roll=cur.rollover?parseFloat(cur.rollover.amount)||0:0;
   const bal=roll+tIn-tOut;
-  const balAll=calcBalAll(c);
+  const balAll=calcBalAll(cur);
 
-  set('kBal',fmt(bal)); el('kBal').className='kpi-val '+(bal>=0?'pos':'neg');
-  set('kRoll',fmt(roll));
-  set('kBalNote',`صافي: ${fmt(tIn-tOut)}`);
-  set('kIn',fmt(tIn)); set('kInN',inOps.length+' عملية');
-  set('kOut',fmt(tOut)); set('kOutN',outOps.length+' عملية');
-  set('kPend',fmt(Math.abs(tPend))); set('kPendN',pend.length+' معلقة');
-  set('kBalAll',fmt(balAll)); el('kBalAll').className='kpi-val '+(balAll>=0?'pos':'neg');
+  set('kBal',fmt(bal,sym)); el('kBal').className='kpi-val '+(bal>=0?'pos':'neg');
+  set('kRoll',fmt(roll,sym));
+  set('kBalNote',`صافي: ${fmt(tIn-tOut,sym)}`);
+  set('kIn',fmt(tIn,sym)); set('kInN',inOps.length+' عملية');
+  set('kOut',fmt(tOut,sym)); set('kOutN',outOps.length+' عملية');
+  set('kPend',fmt(Math.abs(tPend),sym)); set('kPendN',pend.length+' معلقة');
+  set('kBalAll',fmt(balAll,sym)); el('kBalAll').className='kpi-val '+(balAll>=0?'pos':'neg');
 
   // recent 8
   const sorted=[...ops].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,8);
@@ -1109,7 +1268,7 @@ function refreshDash(){
     <tr onclick="openEdit('${o.id}')">
       <td>${fmtD(o.date)} <span style="color:var(--gray3)">${o.time||''}</span></td>
       <td><span class="badge ${o.type==='in'?'b-in':'b-out'}">${o.type==='in'?'↙ دخول':'↗ خروج'}</span></td>
-      <td class="${o.type==='in'?'v-in':'v-out'}">${fmt(o.amount)}</td>
+      <td class="${o.type==='in'?'v-in':'v-out'}">${fmt(o.amount,sym)}</td>
       <td style="color:var(--gray3)">${o.phone||'—'}</td>
       <td><span class="badge ${o.status==='confirmed'?'b-ok':'b-pend'}">${o.status==='confirmed'?'✅ مؤكد':'⏳ معلق'}</span></td>
     </tr>`).join(''); }
@@ -1121,7 +1280,7 @@ function refreshDash(){
     <div onclick="openEdit('${o.id}')" style="padding:.6rem 1rem;border-bottom:1px solid var(--gray2);cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span class="${o.type==='in'?'v-in':'v-out'}" style="font-size:.8rem">${o.type==='in'?'↙ دخول':'↗ خروج'}</span>
-        <span class="${o.type==='in'?'v-in':'v-out'}" style="font-size:.88rem">${fmt(o.amount)}</span>
+        <span class="${o.type==='in'?'v-in':'v-out'}" style="font-size:.88rem">${fmt(o.amount,sym)}</span>
       </div>
       <div style="font-size:.68rem;color:var(--gray3);margin-top:.15rem">${fmtD(o.date)} ${o.time||''} ${o.note?'— '+o.note:''}</div>
     </div>`).join(''); }
@@ -1142,13 +1301,14 @@ function pickType(t){
 function doSaveOp(){
   if(!activeId){ toast('اختر عميلاً أولاً','err'); return }
   const c=client(); if(!c){ toast('عميل غير موجود','err'); return }
+  const cur=activeCurObj(); if(!cur){ toast('اختر عملة أولاً','err'); return }
   const amtStr=el('opAmt').value.trim();
   const amt=parseFloat(amtStr);
   if(!amtStr||isNaN(amt)||amt<=0){ toast('أدخل مبلغاً صحيحاً أكبر من صفر','err'); return }
   const date=el('opDate').value;
   if(!date){ toast('أدخل التاريخ','err'); return }
-  if(!c.ops)c.ops=[];
-  c.ops.push({
+  if(!cur.ops)cur.ops=[];
+  cur.ops.push({
     id:uid(), type:opType, amount:amt, date,
     time:el('opTime').value||'00:00',
     phone:el('opPhone').value.trim(),
@@ -1161,6 +1321,7 @@ function doSaveOp(){
   // go to dashboard
   activeId=activeId; // ensure still set
   buildSidebar();
+  buildCurTabs();
   showView('vDash');
   setTabActive('dash');
   refreshDash();
@@ -1181,15 +1342,17 @@ function doClearOp(){
 //  PENDING TABLE
 // ═══════════════════════════════════════════════
 function renderPend(){
-  const c=client(); if(!c)return;
-  const pend=(c.ops||[]).filter(o=>o.status==='pending').sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+  const cur=activeCurObj();
   const tb=el('pendTbody');
+  if(!cur){ tb.innerHTML='<tr class="empty-row"><td colspan="6">أضف عملة لهذا العميل أولاً</td></tr>'; return }
+  const sym=curSymbol(cur.code);
+  const pend=(cur.ops||[]).filter(o=>o.status==='pending').sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
   if(!pend.length){ tb.innerHTML='<tr class="empty-row"><td colspan="6">لا توجد عمليات معلقة ✅</td></tr>'; return }
   tb.innerHTML=pend.map(o=>`
     <tr onclick="openEdit('${o.id}')">
       <td>${fmtD(o.date)} <span style="color:var(--gray3)">${o.time||''}</span></td>
       <td><span class="badge ${o.type==='in'?'b-in':'b-out'}">${o.type==='in'?'↙ دخول':'↗ خروج'}</span></td>
-      <td class="${o.type==='in'?'v-in':'v-out'}">${fmt(o.amount)}</td>
+      <td class="${o.type==='in'?'v-in':'v-out'}">${fmt(o.amount,sym)}</td>
       <td style="color:var(--gray3)">${o.phone||'—'}</td>
       <td style="color:var(--gray3);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.note||'—'}</td>
       <td onclick="event.stopPropagation()">
@@ -1199,10 +1362,10 @@ function renderPend(){
 }
 
 function quickConfirm(id){
-  const c=client(); if(!c)return;
-  const o=(c.ops||[]).find(x=>x.id===id); if(!o)return;
+  const cur=activeCurObj(); if(!cur)return;
+  const o=(cur.ops||[]).find(x=>x.id===id); if(!o)return;
   o.status='confirmed';
-  save(); buildSidebar(); renderPend(); refreshDash();
+  save(); buildSidebar(); buildCurTabs(); renderPend(); refreshDash();
   toast('تم التأكيد ✅','ok');
 }
 
@@ -1210,18 +1373,24 @@ function quickConfirm(id){
 //  RECONCILIATION (مطابقة الحساب)
 // ═══════════════════════════════════════════════
 function renderRecon(){
-  const c=client(); if(!c)return;
-  const ops=c.ops||[];
+  const cur=activeCurObj();
+  if(!cur){
+    set('rcSysConf',fmt(0)); set('rcSysPend',fmt(0)); set('rcSysAll',fmt(0));
+    el('reconTbody').innerHTML='<tr class="empty-row"><td colspan="6">أضف عملة لهذا العميل أولاً</td></tr>';
+    return;
+  }
+  const sym=curSymbol(cur.code);
+  const ops=cur.ops||[];
   const conf=ops.filter(o=>o.status==='confirmed');
   const pend=ops.filter(o=>o.status==='pending');
-  const roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
+  const roll=cur.rollover?parseFloat(cur.rollover.amount)||0:0;
   const sysConf=roll+conf.reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
   const sysPendOut=pend.filter(o=>o.type==='out').reduce((s,o)=>s+o.amount,0);
-  const sysAll=calcBalAll(c);
+  const sysAll=calcBalAll(cur);
 
-  set('rcSysConf',fmt(sysConf));
-  set('rcSysPend',fmt(sysPendOut));
-  set('rcSysAll',fmt(sysAll));
+  set('rcSysConf',fmt(sysConf,sym));
+  set('rcSysPend',fmt(sysPendOut,sym));
+  set('rcSysAll',fmt(sysAll,sym));
   el('rcSysAll').className='kpi-val tea';
 
   if(!el('rcDate').value) el('rcDate').value=dateStr(new Date());
@@ -1230,40 +1399,41 @@ function renderRecon(){
 }
 
 function rcCalcDiff(){
-  const c=client(); if(!c)return;
+  const cur=activeCurObj(); if(!cur)return;
+  const sym=curSymbol(cur.code);
   const box=el('rcResultBox');
   const actualStr=el('rcActual').value.trim();
   if(actualStr===''){ box.innerHTML='<div style="font-size:.85rem;color:var(--gray3)">أدخل الرصيد الفعلي لعرض الفرق</div>'; return }
   const actual=parseFloat(actualStr);
   if(isNaN(actual)){ box.innerHTML='<div style="font-size:.85rem;color:var(--red)">قيمة غير صحيحة</div>'; return }
-  const sysAll=calcBalAll(c);
+  const sysAll=calcBalAll(cur);
   const diff=actual-sysAll;
   let msg, color;
   if(Math.abs(diff)<0.005){ msg='✅ مطابقة تامة — لا فرق'; color='var(--green)'; }
-  else if(diff>0){ msg=`⬆️ زيادة في الفعلي بمقدار ${fmt(diff)} (الفعلي أكبر من المتوقع)`; color='var(--teal)'; }
-  else{ msg=`⬇️ نقص في الفعلي بمقدار ${fmt(Math.abs(diff))} (الفعلي أقل من المتوقع)`; color='var(--red)'; }
+  else if(diff>0){ msg=`⬆️ زيادة في الفعلي بمقدار ${fmt(diff,sym)} (الفعلي أكبر من المتوقع)`; color='var(--teal)'; }
+  else{ msg=`⬇️ نقص في الفعلي بمقدار ${fmt(Math.abs(diff),sym)} (الفعلي أقل من المتوقع)`; color='var(--red)'; }
   box.innerHTML=`
     <div style="display:flex;justify-content:space-between;margin-bottom:.5rem;font-size:.85rem">
-      <span>الرصيد المتوقع (دفاتر):</span><b>${fmt(sysAll)}</b>
+      <span>الرصيد المتوقع (دفاتر):</span><b>${fmt(sysAll,sym)}</b>
     </div>
     <div style="display:flex;justify-content:space-between;margin-bottom:.5rem;font-size:.85rem">
-      <span>الرصيد الفعلي المُدخل:</span><b>${fmt(actual)}</b>
+      <span>الرصيد الفعلي المُدخل:</span><b>${fmt(actual,sym)}</b>
     </div>
     <div style="display:flex;justify-content:space-between;font-size:.95rem;font-weight:800;color:${color};border-top:1px solid var(--gray2);padding-top:.5rem">
-      <span>الفرق:</span><span>${fmt(diff)}</span>
+      <span>الفرق:</span><span>${fmt(diff,sym)}</span>
     </div>
     <div style="margin-top:.5rem;font-size:.8rem;color:${color};font-weight:700">${msg}</div>`;
 }
 
 function doSaveRecon(){
-  const c=client(); if(!c){ toast('اختر عميلاً أولاً','err'); return }
+  const cur=activeCurObj(); if(!cur){ toast('اختر عميلاً وعملة أولاً','err'); return }
   const actualStr=el('rcActual').value.trim();
   const actual=parseFloat(actualStr);
   if(actualStr===''||isNaN(actual)){ toast('أدخل الرصيد الفعلي','err'); return }
-  const sysAll=calcBalAll(c);
+  const sysAll=calcBalAll(cur);
   const diff=actual-sysAll;
-  if(!c.reconciliations)c.reconciliations=[];
-  c.reconciliations.push({
+  if(!cur.reconciliations)cur.reconciliations=[];
+  cur.reconciliations.push({
     id:uid(),
     date:el('rcDate').value||dateStr(new Date()),
     expected:sysAll,
@@ -1284,18 +1454,20 @@ function doClearRecon(){
 }
 
 function renderReconHistory(){
-  const c=client(); if(!c)return;
-  const list=[...(c.reconciliations||[])].sort((a,b)=>b.date.localeCompare(a.date));
+  const cur=activeCurObj();
   const tb=el('reconTbody');
+  if(!cur){ tb.innerHTML='<tr class="empty-row"><td colspan="6">أضف عملة لهذا العميل أولاً</td></tr>'; return }
+  const sym=curSymbol(cur.code);
+  const list=[...(cur.reconciliations||[])].sort((a,b)=>b.date.localeCompare(a.date));
   if(!list.length){ tb.innerHTML='<tr class="empty-row"><td colspan="6">لا توجد مطابقات سابقة</td></tr>'; return }
   tb.innerHTML=list.map(r=>{
     const ok=Math.abs(r.diff)<0.005;
     const dCol=ok?'var(--green)':(r.diff>0?'var(--teal)':'var(--red)');
     return `<tr>
       <td>${fmtD(r.date)}</td>
-      <td>${fmt(r.expected)}</td>
-      <td>${fmt(r.actual)}</td>
-      <td style="color:${dCol};font-weight:800">${ok?'✅ مطابق':fmt(r.diff)}</td>
+      <td>${fmt(r.expected,sym)}</td>
+      <td>${fmt(r.actual,sym)}</td>
+      <td style="color:${dCol};font-weight:800">${ok?'✅ مطابق':fmt(r.diff,sym)}</td>
       <td style="color:var(--gray3);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.note||'—'}</td>
       <td><button class="btn btn-red btn-sm" onclick="delRecon('${r.id}')">🗑</button></td>
     </tr>`;
@@ -1304,8 +1476,8 @@ function renderReconHistory(){
 
 function delRecon(id){
   confirm2('حذف المطابقة','هل تريد حذف سجل هذه المطابقة؟',()=>{
-    const c=client(); if(!c)return;
-    c.reconciliations=(c.reconciliations||[]).filter(r=>r.id!==id);
+    const cur=activeCurObj(); if(!cur)return;
+    cur.reconciliations=(cur.reconciliations||[]).filter(r=>r.id!==id);
     save(); renderReconHistory();
     toast('تم الحذف','inf');
   });
@@ -1345,8 +1517,11 @@ function sortStmt(col){
   renderStmt();
 }
 function renderStmt(){
-  const c=client(); if(!c)return;
-  let ops=[...(c.ops||[])];
+  const cur=activeCurObj();
+  const tb=el('stmtTbody');
+  if(!cur){ tb.innerHTML='<tr class="empty-row"><td colspan="7">أضف عملة لهذا العميل أولاً</td></tr>'; el('fInfo').textContent=''; return }
+  const sym=curSymbol(cur.code);
+  let ops=[...(cur.ops||[])];
   // filters
   const fr=el('fFrom').value, to=el('fTo').value, q=(el('fSearch').value||'').toLowerCase();
   if(fr)ops=ops.filter(o=>o.date>=fr);
@@ -1364,25 +1539,24 @@ function renderStmt(){
     return sortDir*(va<vb?-1:va>vb?1:0);
   });
   // running balance (always chronological regardless of sort)
-  const chrono=[...(c.ops||[])].filter(o=>o.status==='confirmed').sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  const chrono=[...(cur.ops||[])].filter(o=>o.status==='confirmed').sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
   const runMap={};
-  let run=c.rollover?parseFloat(c.rollover.amount)||0:0;
+  let run=cur.rollover?parseFloat(cur.rollover.amount)||0:0;
   chrono.forEach(o=>{ run+=o.type==='in'?o.amount:-o.amount; runMap[o.id]=run });
 
   // totals
   const tIn=ops.filter(o=>o.type==='in').reduce((s,o)=>s+o.amount,0);
   const tOut=ops.filter(o=>o.type==='out').reduce((s,o)=>s+o.amount,0);
-  el('fInfo').textContent=ops.length?`${ops.length} نتيجة — دخول: ${fmt(tIn)} | خروج: ${fmt(tOut)} | الصافي: ${fmt(tIn-tOut)}`:'';
+  el('fInfo').textContent=ops.length?`${ops.length} نتيجة — دخول: ${fmt(tIn,sym)} | خروج: ${fmt(tOut,sym)} | الصافي: ${fmt(tIn-tOut,sym)}`:'';
 
-  const tb=el('stmtTbody');
   if(!ops.length){ tb.innerHTML='<tr class="empty-row"><td colspan="7">لا توجد نتائج تطابق الفلتر</td></tr>'; return }
   tb.innerHTML=ops.map(o=>{
     const rb=runMap[o.id];
-    const rbStr=rb!==undefined?`<span class="${rb>=0?'v-in':'v-out'}">${fmt(rb)}</span>`:'<span style="color:var(--gray3)">—</span>';
+    const rbStr=rb!==undefined?`<span class="${rb>=0?'v-in':'v-out'}">${fmt(rb,sym)}</span>`:'<span style="color:var(--gray3)">—</span>';
     return `<tr onclick="openEdit('${o.id}')">
       <td>${fmtD(o.date)} <span style="color:var(--gray3)">${o.time||''}</span></td>
       <td><span class="badge ${o.type==='in'?'b-in':'b-out'}">${o.type==='in'?'↙ دخول':'↗ خروج'}</span></td>
-      <td class="${o.type==='in'?'v-in':'v-out'}">${fmt(o.amount)}</td>
+      <td class="${o.type==='in'?'v-in':'v-out'}">${fmt(o.amount,sym)}</td>
       <td style="color:var(--gray3)">${o.phone||'—'}</td>
       <td><span class="badge ${o.status==='confirmed'?'b-ok':'b-pend'}">${o.status==='confirmed'?'✅':'⏳'}</span></td>
       <td style="color:var(--gray3);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.note||'—'}</td>
@@ -1395,8 +1569,8 @@ function renderStmt(){
 //  EDIT MODAL
 // ═══════════════════════════════════════════════
 function openEdit(id){
-  const c=client(); if(!c)return;
-  const o=(c.ops||[]).find(x=>x.id===id); if(!o)return;
+  const cur=activeCurObj(); if(!cur)return;
+  const o=(cur.ops||[]).find(x=>x.id===id); if(!o)return;
   el('eId').value=id;
   el('eDate').value=o.date;
   el('eTime').value=o.time||'';
@@ -1419,15 +1593,15 @@ function ePickStatus(s){
 }
 
 function doSaveEdit(){
-  const c=client(); if(!c)return;
+  const cur=activeCurObj(); if(!cur)return;
   const id=el('eId').value;
-  const o=(c.ops||[]).find(x=>x.id===id); if(!o)return;
+  const o=(cur.ops||[]).find(x=>x.id===id); if(!o)return;
   const amt=parseFloat(el('eAmt').value);
   if(isNaN(amt)||amt<=0){ toast('مبلغ غير صحيح','err'); return }
   o.date=el('eDate').value; o.time=el('eTime').value;
   o.amount=amt; o.phone=el('ePhone').value.trim();
   o.note=el('eNote').value.trim(); o.status=eStatus;
-  save(); closeM('mEdit'); buildSidebar();
+  save(); closeM('mEdit'); buildSidebar(); buildCurTabs();
   refreshDash(); renderPend(); renderStmt();
   toast('تم الحفظ ✓','ok');
 }
@@ -1435,9 +1609,9 @@ function doSaveEdit(){
 function doDelOp(){
   const id=el('eId').value;
   confirm2('حذف العملية','هل تريد حذف هذه العملية نهائياً؟',()=>{
-    const c=client(); if(!c)return;
-    c.ops=(c.ops||[]).filter(o=>o.id!==id);
-    save(); closeM('mEdit'); buildSidebar();
+    const cur=activeCurObj(); if(!cur)return;
+    cur.ops=(cur.ops||[]).filter(o=>o.id!==id);
+    save(); closeM('mEdit'); buildSidebar(); buildCurTabs();
     refreshDash(); renderPend(); renderStmt();
     toast('تم الحذف','inf');
   });
@@ -1447,29 +1621,47 @@ function doDelOp(){
 //  ROLLOVER
 // ═══════════════════════════════════════════════
 function openRollover(){
-  const c=client(); if(!c)return;
-  el('rAmt').value=c.rollover?.amount||'';
-  el('rDate').value=c.rollover?.date||dateStr(new Date());
-  el('rNote').value=c.rollover?.note||'';
+  const cur=activeCurObj(); if(!cur){ toast('اختر عملة أولاً','err'); return }
+  el('rAmt').value=cur.rollover?.amount||'';
+  el('rDate').value=cur.rollover?.date||dateStr(new Date());
+  el('rNote').value=cur.rollover?.note||'';
   openM('mRoll');
 }
 function doSaveRoll(){
-  const c=client(); if(!c)return;
-  c.rollover={amount:parseFloat(el('rAmt').value)||0,date:el('rDate').value,note:el('rNote').value.trim()};
-  save(); closeM('mRoll'); buildSidebar(); refreshDash();
+  const cur=activeCurObj(); if(!cur)return;
+  cur.rollover={amount:parseFloat(el('rAmt').value)||0,date:el('rDate').value,note:el('rNote').value.trim()};
+  save(); closeM('mRoll'); buildSidebar(); buildCurTabs(); refreshDash();
   toast('تم حفظ الرصيد المدور ✓','ok');
 }
 function doRemRoll(){
-  const c=client(); if(!c)return;
-  c.rollover=null; save(); closeM('mRoll'); buildSidebar(); refreshDash();
+  const cur=activeCurObj(); if(!cur)return;
+  cur.rollover=null; save(); closeM('mRoll'); buildSidebar(); buildCurTabs(); refreshDash();
   toast('تمت الإزالة','inf');
 }
 
 // ═══════════════════════════════════════════════
 //  ADD CLIENT
 // ═══════════════════════════════════════════════
+function buildCurPickAdd(){
+  const wrap=el('curPickAdd');
+  wrap.innerHTML=Object.keys(CURRENCIES).map(code=>{
+    const on=selAddCurs.includes(code)?' on':'';
+    return `<button type="button" class="chip${on}" data-curadd="${code}" onclick="toggleAddCur('${code}')">${code} ${curSymbol(code)}</button>`;
+  }).join('');
+}
+function toggleAddCur(code){
+  if(selAddCurs.includes(code)){
+    if(selAddCurs.length===1)return; // keep at least one currency selected
+    selAddCurs=selAddCurs.filter(x=>x!==code);
+  } else {
+    selAddCurs.push(code);
+  }
+  buildCurPickAdd();
+}
 function openAddClient(){
   el('cName').value=''; el('cSub').value=''; selColor='#1A3660';
+  selAddCurs=['USD'];
+  buildCurPickAdd();
   document.querySelectorAll('#colorPick .chip').forEach(b=>b.classList.remove('on'));
   document.querySelector('#colorPick .chip').classList.add('on');
   openM('mAddC');
@@ -1482,10 +1674,68 @@ function pickCol(col,btn){
 function doAddClient(){
   const name=el('cName').value.trim();
   if(!name){ toast('أدخل اسم العميل','err'); return }
-  const c={id:uid(),name,sub:el('cSub').value.trim(),color:selColor,ops:[],rollover:null,reconciliations:[]};
+  if(!selAddCurs.length){ toast('اختر عملة واحدة على الأقل','err'); return }
+  const currencies=selAddCurs.map(code=>({code,symbol:curSymbol(code),ops:[],rollover:null,reconciliations:[]}));
+  const c={id:uid(),name,sub:el('cSub').value.trim(),color:selColor,currencies};
   DB.push(c); save(); closeM('mAddC'); buildSidebar();
   toast('تمت الإضافة ✓','ok');
+  activeCur=currencies[0].code;
   pickClient(c.id);
+}
+
+// ═══════════════════════════════════════════════
+//  ADD CURRENCY TO EXISTING CLIENT
+// ═══════════════════════════════════════════════
+function buildCurPickNew(){
+  const c=client(); if(!c)return;
+  const existing=(c.currencies||[]).map(x=>x.code);
+  const wrap=el('curPickNew');
+  const avail=Object.keys(CURRENCIES).filter(code=>!existing.includes(code));
+  pickedNewCur=avail.length?avail[0]:'__custom__';
+  let html=avail.map(code=>{
+    const on=code===pickedNewCur?' on':'';
+    return `<button type="button" class="chip${on}" data-curnew="${code}" onclick="pickNewCur('${code}')">${code} ${curSymbol(code)}</button>`;
+  }).join('');
+  const customOn=pickedNewCur==='__custom__'?' on':'';
+  html+=`<button type="button" class="chip${customOn}" data-curnew="__custom__" onclick="pickNewCur('__custom__')">+ عملة أخرى</button>`;
+  wrap.innerHTML=html;
+  el('customCurWrap').style.display=pickedNewCur==='__custom__'?'block':'none';
+}
+function pickNewCur(code){
+  pickedNewCur=code;
+  document.querySelectorAll('[data-curnew]').forEach(b=>b.classList.remove('on'));
+  document.querySelector(`[data-curnew="${code}"]`).classList.add('on');
+  el('customCurWrap').style.display=code==='__custom__'?'block':'none';
+}
+function openAddCurrency(){
+  const c=client(); if(!c){ toast('اختر عميلاً أولاً','err'); return }
+  el('customCurCode').value=''; el('customCurSym').value='';
+  buildCurPickNew();
+  openM('mAddCur');
+}
+function doAddCurrency(){
+  const c=client(); if(!c)return;
+  let code, symbol;
+  if(pickedNewCur==='__custom__'){
+    code=el('customCurCode').value.trim().toUpperCase();
+    symbol=el('customCurSym').value.trim();
+    if(!code){ toast('أدخل رمز العملة','err'); return }
+    if(!symbol)symbol=code;
+    if(!CURRENCIES[code]) CURRENCIES[code]={symbol,name:code};
+  } else {
+    code=pickedNewCur;
+    symbol=curSymbol(code);
+  }
+  if(!c.currencies)c.currencies=[];
+  if(c.currencies.find(x=>x.code===code)){ toast('هذه العملة موجودة لدى العميل بالفعل','err'); return }
+  c.currencies.push({code,symbol,ops:[],rollover:null,reconciliations:[]});
+  save();
+  closeM('mAddCur');
+  activeCur=code;
+  buildCurTabs();
+  buildSidebar();
+  refreshDash();
+  toast('تمت إضافة العملة ✓','ok');
 }
 
 // ═══════════════════════════════════════════════
@@ -1495,7 +1745,39 @@ function openCS(id){
   activeId=id;
   const c=client(); if(!c)return;
   el('csName').value=c.name; el('csSub').value=c.sub||'';
+  buildCSCurList();
   openM('mCS');
+}
+function buildCSCurList(){
+  const c=client(); if(!c)return;
+  const wrap=el('csCurList');
+  const curs=c.currencies||[];
+  if(!curs.length){ wrap.innerHTML='<div class="hint">لا توجد عملات لهذا العميل</div>'; return }
+  wrap.innerHTML=curs.map(cur=>{
+    const bal=calcBalAll(cur);
+    const canDel=curs.length>1;
+    return `<div class="cs-cur-row">
+      <div>
+        <div class="cs-cur-info">${cur.code} ${curSymbol(cur.code)}</div>
+        <div class="cs-cur-bal">الرصيد: ${fmt(bal,curSymbol(cur.code))}</div>
+      </div>
+      ${canDel?`<button class="btn btn-red btn-sm" onclick="delClientCurrency('${cur.code}')">🗑 حذف</button>`:''}
+    </div>`;
+  }).join('');
+}
+function delClientCurrency(code){
+  const c=client(); if(!c)return;
+  if((c.currencies||[]).length<=1){ toast('لا يمكن حذف آخر عملة لدى العميل','err'); return }
+  confirm2('حذف العملة',`سيُحذف حساب ${code} وجميع عملياته نهائياً لهذا العميل. هل أنت متأكد؟`,()=>{
+    c.currencies=c.currencies.filter(x=>x.code!==code);
+    if(activeCur===code){ activeCur=c.currencies[0].code; }
+    save();
+    buildCSCurList();
+    buildCurTabs();
+    buildSidebar();
+    refreshDash();
+    toast('تم حذف العملة','inf');
+  });
 }
 function doSaveCS(){
   const c=client(); if(!c)return;
@@ -1506,9 +1788,10 @@ function doSaveCS(){
 }
 function askDelClient(){
   closeM('mCS');
-  confirm2('حذف العميل','سيُحذف العميل وجميع عملياته نهائياً. هل أنت متأكد؟',()=>{
-    DB=DB.filter(c=>c.id!==activeId); activeId=null; save(); buildSidebar();
+  confirm2('حذف العميل','سيُحذف العميل وجميع عملياته وعملاته نهائياً. هل أنت متأكد؟',()=>{
+    DB=DB.filter(c=>c.id!==activeId); activeId=null; activeCur=null; save(); buildSidebar();
     el('tbName').textContent='اختر عميلاً'; el('tbSub').textContent='';
+    el('curTabsRow').innerHTML='';
     showView('vWelcome'); setTabActive('');
     toast('تم الحذف','inf');
     if(DB.length)pickClient(DB[0].id);
@@ -1542,8 +1825,8 @@ function initReport(){
 }
 
 function getReportOps(){
-  const c=client(); if(!c)return[];
-  let ops=[...(c.ops||[])];
+  const cur=activeCurObj(); if(!cur)return{ops:[],rangeLabel:''};
+  let ops=[...(cur.ops||[])];
   const period=el('rpPeriod').value;
   const today=dateStr(new Date());
   let rangeLabel='';
@@ -1561,7 +1844,12 @@ function getReportOps(){
 }
 
 function renderReport(){
-  const c=client(); if(!c)return;
+  const cur=activeCurObj();
+  if(!cur){
+    el('rpTbody').innerHTML='<tr class="empty-row"><td colspan="6">أضف عملة لهذا العميل أولاً</td></tr>';
+    return;
+  }
+  const sym=curSymbol(cur.code);
   const {ops,rangeLabel}=getReportOps();
   const inOps=ops.filter(o=>o.type==='in');
   const outOps=ops.filter(o=>o.type==='out');
@@ -1571,9 +1859,9 @@ function renderReport(){
   const sumOut=outOps.reduce((s,o)=>s+o.amount,0);
 
   set('rpCountIn',inOps.length);
-  set('rpSumIn','بقيمة '+fmt(sumIn));
+  set('rpSumIn','بقيمة '+fmt(sumIn,sym));
   set('rpCountOut',outOps.length);
-  set('rpSumOut','بقيمة '+fmt(sumOut));
+  set('rpSumOut','بقيمة '+fmt(sumOut,sym));
   set('rpCountTotal',ops.length);
   set('rpRangeNote',rangeLabel);
   set('rpCountPend',pendOps.length);
@@ -1589,8 +1877,8 @@ function renderReport(){
       <td style="color:var(--green);font-weight:700">${inOps.length}</td>
       <td style="color:var(--red);font-weight:700">${outOps.length}</td>
       <td style="font-weight:800">${ops.length}</td>
-      <td style="color:var(--green)">${fmt(sumIn)}</td>
-      <td style="color:var(--red)">${fmt(sumOut)}</td>
+      <td style="color:var(--green)">${fmt(sumIn,sym)}</td>
+      <td style="color:var(--red)">${fmt(sumOut,sym)}</td>
     </tr>`;
     return;
   }
@@ -1612,15 +1900,15 @@ function renderReport(){
       <td style="color:var(--green);font-weight:700">${g.in}</td>
       <td style="color:var(--red);font-weight:700">${g.out}</td>
       <td style="font-weight:800">${g.in+g.out}</td>
-      <td style="color:var(--green)">${fmt(g.sumIn)}</td>
-      <td style="color:var(--red)">${fmt(g.sumOut)}</td>
+      <td style="color:var(--green)">${fmt(g.sumIn,sym)}</td>
+      <td style="color:var(--red)">${fmt(g.sumOut,sym)}</td>
     </tr>`;
   }).join('');
 }
 
 function getPdfOps(){
-  const c=client(); if(!c)return[];
-  let ops=[...(c.ops||[])];
+  const cur=activeCurObj(); if(!cur)return[];
+  let ops=[...(cur.ops||[])];
   const period=el('pPeriod').value;
   const type=el('pType').value;
   const today=dateStr(new Date());
@@ -1641,14 +1929,16 @@ function getPdfOps(){
 }
 
 function buildPdfHTML(c,ops){
+  const cur=activeCurObj();
+  const sym=cur?curSymbol(cur.code):'$';
   const tIn=ops.filter(o=>o.type==='in').reduce((s,o)=>s+o.amount,0);
   const tOut=ops.filter(o=>o.type==='out').reduce((s,o)=>s+o.amount,0);
-  const roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
+  const roll=cur&&cur.rollover?parseFloat(cur.rollover.amount)||0:0;
   const net=roll+tIn-tOut;
   const rows=ops.map(o=>`<tr>
     <td>${o.date} ${o.time||''}</td>
     <td style="color:${o.type==='in'?'#1A7A4A':'#C0392B'};font-weight:700">${o.type==='in'?'↙ دخول':'↗ خروج'}</td>
-    <td style="font-weight:800;color:${o.type==='in'?'#1A7A4A':'#C0392B'}">${fmt(o.amount)}</td>
+    <td style="font-weight:800;color:${o.type==='in'?'#1A7A4A':'#C0392B'}">${fmt(o.amount,sym)}</td>
     <td>${o.phone||'—'}</td>
     <td>${o.status==='confirmed'?'✅ مؤكد':'⏳ معلق'}</td>
     <td>${o.note||''}</td>
@@ -1656,14 +1946,14 @@ function buildPdfHTML(c,ops){
   return `
   <div class="ph">
     <h1>مكتب المختار للصيرفة</h1>
-    <p>كشف حساب: ${c.name}${c.sub?' — '+c.sub:''}</p>
+    <p>كشف حساب: ${c.name}${c.sub?' — '+c.sub:''}${cur?' — '+cur.code:''}</p>
     <p>تاريخ الطباعة: ${new Date().toLocaleString('ar-LB')}</p>
   </div>
   <div class="pdf-kpis">
-    <div class="pdf-kpi"><div class="l">رصيد مدور</div><div class="v" style="color:#1C8E8E">${fmt(roll)}</div></div>
-    <div class="pdf-kpi"><div class="l">دخول</div><div class="v" style="color:#1A7A4A">+${fmt(tIn)}</div></div>
-    <div class="pdf-kpi"><div class="l">خروج</div><div class="v" style="color:#C0392B">-${fmt(tOut)}</div></div>
-    <div class="pdf-kpi"><div class="l">الرصيد الكلي</div><div class="v" style="color:${net>=0?'#1A7A4A':'#C0392B'}">${fmt(net)}</div></div>
+    <div class="pdf-kpi"><div class="l">رصيد مدور</div><div class="v" style="color:#1C8E8E">${fmt(roll,sym)}</div></div>
+    <div class="pdf-kpi"><div class="l">دخول</div><div class="v" style="color:#1A7A4A">+${fmt(tIn,sym)}</div></div>
+    <div class="pdf-kpi"><div class="l">خروج</div><div class="v" style="color:#C0392B">-${fmt(tOut,sym)}</div></div>
+    <div class="pdf-kpi"><div class="l">الرصيد الكلي</div><div class="v" style="color:${net>=0?'#1A7A4A':'#C0392B'}">${fmt(net,sym)}</div></div>
   </div>
   <table>
     <thead><tr><th>التاريخ والوقت</th><th>النوع</th><th>المبلغ</th><th>الهاتف</th><th>الحالة</th><th>ملاحظة</th></tr></thead>
@@ -1674,6 +1964,7 @@ function buildPdfHTML(c,ops){
 
 function previewPDF(){
   const c=client(); if(!c){ toast('اختر عميلاً','err'); return }
+  const cur=activeCurObj(); if(!cur){ toast('اختر عملة','err'); return }
   const ops=getPdfOps();
   el('pdfContent').innerHTML=buildPdfHTML(c,ops);
   el('pdfPreview').classList.add('open');
@@ -1681,6 +1972,7 @@ function previewPDF(){
 
 function doPrint(){
   const c=client(); if(!c){ toast('اختر عميلاً','err'); return }
+  const cur=activeCurObj(); if(!cur){ toast('اختر عملة','err'); return }
   const ops=getPdfOps();
   const w=window.open('','_blank');
   w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head>
