@@ -8,6 +8,7 @@
 <!-- Firebase SDK (compat, no build tools needed) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyBfDJB9x8MF-7qQigmzanTMlwqm3jWlqcU",
@@ -19,6 +20,7 @@
   };
   firebase.initializeApp(firebaseConfig);
   const dbFS = firebase.firestore();
+  const auth = firebase.auth();
 </script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -311,9 +313,10 @@ tbody tr:hover td{background:var(--gray1)}
     <h1>مكتب المختار للصيرفة</h1>
     <p>نظام إدارة الحسابات المالية</p>
     <div id="loginErr">اسم المستخدم أو كلمة المرور غير صحيحة</div>
-    <div class="lf"><label>اسم المستخدم</label><input id="lu" placeholder="اسم المستخدم" autocomplete="username"/></div>
+    <div class="lf"><label>البريد الإلكتروني</label><input id="lu" type="email" placeholder="example@email.com" autocomplete="email"/></div>
     <div class="lf"><label>كلمة المرور</label><input id="lp" type="password" placeholder="كلمة المرور" autocomplete="current-password"/></div>
-    <button class="btn-login" onclick="doLogin()">دخول</button>
+    <button class="btn-login" id="btnLogin" onclick="doLogin()">دخول</button>
+    <div id="loginLoading" style="display:none;text-align:center;color:rgba(255,255,255,.6);font-size:.8rem;margin-top:.5rem">جاري التحقق...</div>
   </div>
 </div>
 
@@ -334,6 +337,7 @@ tbody tr:hover td{background:var(--gray1)}
     </div>
     <div class="client-scroll" id="clientList"></div>
     <div class="sb-foot">
+      <div id="sbUserEmail" style="font-size:.65rem;color:rgba(255,255,255,.4);padding:.3rem 0;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
       <button class="btn-logout" onclick="doLogout()">⏏ خروج</button>
     </div>
   </aside>
@@ -354,6 +358,8 @@ tbody tr:hover td{background:var(--gray1)}
         <button class="tabb" data-tab="recon" onclick="goTab('recon',this)">🧮 مطابقة</button>
         <button class="tabb" data-tab="stmt" onclick="goTab('stmt',this)">كشف الحساب</button>
         <button class="tabb" data-tab="pdf" onclick="goTab('pdf',this)">🖨️ PDF</button>
+        <button class="tabb" data-tab="all" onclick="goTab('all',this)">📋 كشف موحد</button>
+        <button class="tabb" data-tab="all" onclick="goTab('all',this)">📋 كشف موحد</button>
       </div>
     </div>
 
@@ -369,36 +375,72 @@ tbody tr:hover td{background:var(--gray1)}
 
       <!-- DASHBOARD -->
       <div id="vDash" class="view">
+        <!-- USD row -->
+        <div style="font-size:.7rem;font-weight:700;color:var(--green);padding:.4rem .2rem">💵 دولار USD</div>
         <div class="kpi-row">
           <div class="kpi k-bal">
-            <div class="kpi-lbl">الرصيد المؤكد</div>
+            <div class="kpi-lbl">رصيد مؤكد $</div>
             <div class="kpi-val" id="kBal">$0.00</div>
             <div class="kpi-note" id="kBalNote"></div>
           </div>
           <div class="kpi k-roll">
-            <div class="kpi-lbl">رصيد مدور</div>
+            <div class="kpi-lbl">رصيد مدور $</div>
             <div class="kpi-val tea" id="kRoll">$0.00</div>
             <div class="kpi-note"><button class="link-btn" onclick="openRollover()">✎ تعديل</button></div>
           </div>
           <div class="kpi k-in">
-            <div class="kpi-lbl">دخول مؤكد</div>
+            <div class="kpi-lbl">دخول $ مؤكد</div>
             <div class="kpi-val pos" id="kIn">$0.00</div>
             <div class="kpi-note" id="kInN"></div>
           </div>
           <div class="kpi k-out">
-            <div class="kpi-lbl">خروج مؤكد</div>
+            <div class="kpi-lbl">خروج $ مؤكد</div>
             <div class="kpi-val neg" id="kOut">$0.00</div>
             <div class="kpi-note" id="kOutN"></div>
           </div>
           <div class="kpi k-pend">
-            <div class="kpi-lbl">غير مؤكد</div>
+            <div class="kpi-lbl">معلق $</div>
             <div class="kpi-val amb" id="kPend">$0.00</div>
             <div class="kpi-note" id="kPendN"></div>
           </div>
           <div class="kpi k-bal">
-            <div class="kpi-lbl">الرصيد الكلي (شامل المعلق خروجاً)</div>
+            <div class="kpi-lbl">رصيد كلي $</div>
             <div class="kpi-val" id="kBalAll">$0.00</div>
             <div class="kpi-note"><button class="link-btn" onclick="sendBalanceWA()">📤 إرسال مطابقة</button></div>
+          </div>
+        </div>
+        <!-- LBP row -->
+        <div style="font-size:.7rem;font-weight:700;color:#b7770d;padding:.4rem .2rem">🇱🇧 ليرة لبنانية LBP</div>
+        <div class="kpi-row">
+          <div class="kpi k-bal">
+            <div class="kpi-lbl">رصيد مؤكد ل.ل</div>
+            <div class="kpi-val" id="kBalL">ل.ل 0</div>
+            <div class="kpi-note" id="kBalNoteL"></div>
+          </div>
+          <div class="kpi k-roll">
+            <div class="kpi-lbl">رصيد مدور ل.ل</div>
+            <div class="kpi-val tea" id="kRollL">ل.ل 0</div>
+            <div class="kpi-note"><button class="link-btn" onclick="openRolloverLbp()">✎ تعديل</button></div>
+          </div>
+          <div class="kpi k-in">
+            <div class="kpi-lbl">دخول ل.ل مؤكد</div>
+            <div class="kpi-val pos" id="kInL">ل.ل 0</div>
+            <div class="kpi-note" id="kInNL"></div>
+          </div>
+          <div class="kpi k-out">
+            <div class="kpi-lbl">خروج ل.ل مؤكد</div>
+            <div class="kpi-val neg" id="kOutL">ل.ل 0</div>
+            <div class="kpi-note" id="kOutNL"></div>
+          </div>
+          <div class="kpi k-pend">
+            <div class="kpi-lbl">معلق ل.ل</div>
+            <div class="kpi-val amb" id="kPendL">ل.ل 0</div>
+            <div class="kpi-note" id="kPendNL"></div>
+          </div>
+          <div class="kpi k-bal">
+            <div class="kpi-lbl">رصيد كلي ل.ل</div>
+            <div class="kpi-val" id="kBalAllL">ل.ل 0</div>
+            <div class="kpi-note"></div>
           </div>
         </div>
         <div class="dash-grid">
@@ -438,7 +480,14 @@ tbody tr:hover td{background:var(--gray1)}
               </div>
             </div>
             <div class="fg">
-              <label>المبلغ ($) *</label>
+              <label>العملة</label>
+              <div class="type-btns">
+                <button class="type-btn on-in" id="btnUsd" onclick="pickCur('usd')">💵 دولار</button>
+                <button class="type-btn" id="btnLbp" onclick="pickCur('lbp')">🇱🇧 ليرة</button>
+              </div>
+            </div>
+            <div class="fg">
+              <label id="opAmtLabel">المبلغ ($) *</label>
               <input type="number" id="opAmt" placeholder="0.00" min="0.01" step="0.01"/>
             </div>
             <div class="fg">
@@ -487,19 +536,26 @@ tbody tr:hover td{background:var(--gray1)}
       <div id="vRecon" class="view">
         <div class="form-panel">
           <h3>🧮 مطابقة الحساب</h3>
+          <div class="fg" style="margin-bottom:.8rem">
+            <label>عملة المطابقة</label>
+            <div class="type-btns">
+              <button class="type-btn on-in" id="rcBtnUsd" onclick="pickRcCur('usd')">💵 دولار</button>
+              <button class="type-btn" id="rcBtnLbp" onclick="pickRcCur('lbp')">🇱🇧 ليرة</button>
+            </div>
+          </div>
           <div class="kpi-row" style="margin-bottom:1rem">
             <div class="kpi k-bal">
               <div class="kpi-lbl">الرصيد المؤكد (دفاتر النظام)</div>
-              <div class="kpi-val" id="rcSysConf">$0.00</div>
+              <div class="kpi-val" id="rcSysConf">0</div>
             </div>
             <div class="kpi k-pend">
               <div class="kpi-lbl">خروج معلق (يُطرح من الرصيد)</div>
-              <div class="kpi-val amb" id="rcSysPend">$0.00</div>
+              <div class="kpi-val amb" id="rcSysPend">0</div>
             </div>
             <div class="kpi k-roll">
               <div class="kpi-lbl">الرصيد الكلي المتوقع</div>
-              <div class="kpi-val tea" id="rcSysAll">$0.00</div>
-              <div class="kpi-note"><button class="link-btn" onclick="sendBalanceWA()">📤 إرسال مطابقة</button></div>
+              <div class="kpi-val tea" id="rcSysAll">0</div>
+              <div class="kpi-note"><button class="link-btn" id="rcSendWA" onclick="sendBalanceWA()">📤 إرسال مطابقة</button></div>
             </div>
           </div>
           <div class="fgrid">
@@ -548,6 +604,14 @@ tbody tr:hover td{background:var(--gray1)}
             <div class="fg"><label>من تاريخ</label><input type="date" id="fFrom" onchange="renderStmt()"/></div>
             <div class="fg"><label>إلى تاريخ</label><input type="date" id="fTo" onchange="renderStmt()"/></div>
             <div class="fg">
+              <label>العملة</label>
+              <div class="chips">
+                <button class="chip on" data-fc="all" onclick="setFC('all',this)">الكل</button>
+                <button class="chip" data-fc="usd" onclick="setFC('usd',this)">💵 دولار</button>
+                <button class="chip" data-fc="lbp" onclick="setFC('lbp',this)">🇱🇧 ليرة</button>
+              </div>
+            </div>
+            <div class="fg">
               <label>النوع</label>
               <div class="chips">
                 <button class="chip on" data-ft="all" onclick="setFT('all',this)">الكل</button>
@@ -574,14 +638,85 @@ tbody tr:hover td{background:var(--gray1)}
               <thead><tr>
                 <th onclick="sortStmt('date')"><span class="sort-arrow">↕</span>التاريخ</th>
                 <th>النوع</th>
+                <th>العملة</th>
                 <th onclick="sortStmt('amount')"><span class="sort-arrow">↕</span>المبلغ</th>
                 <th onclick="sortStmt('phone')"><span class="sort-arrow">↕</span>الهاتف</th>
                 <th>الحالة</th>
                 <th>ملاحظة</th>
-                <th onclick="sortStmt('balance')"><span class="sort-arrow">↕</span>الرصيد المتراكم</th>
+                <th onclick="sortStmt('balance')"><span class="sort-arrow">↕</span>الرصيد</th>
               </tr></thead>
               <tbody id="stmtTbody"><tr class="empty-row"><td colspan="7">لا توجد نتائج</td></tr></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- UNIFIED STATEMENT -->
+      <div id="vAll" class="view">
+        <div class="box" style="margin-bottom:1rem">
+          <div class="box-hd" style="padding:.8rem 1.1rem">
+            <div class="box-title">📋 كشف الحساب الموحد — كل العملاء</div>
+            <span style="font-size:.72rem;color:var(--gray3)" id="allUpdated"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>العميل</th>
+                <th>💵 رصيد الدولار</th>
+                <th>🇱🇧 رصيد الليرة</th>
+                <th>عدد العمليات</th>
+                <th>معلقة</th>
+              </tr></thead>
+              <tbody id="allTbody"><tr class="empty-row"><td colspan="5">لا يوجد عملاء</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="allOpsBox" style="display:none">
+          <div class="box">
+            <div class="box-hd"><div class="box-title" id="allOpsTitle">عمليات العميل</div>
+              <button class="link-btn" onclick="closeAllOps()">✕ إغلاق</button>
+            </div>
+            <div class="tbl-wrap">
+              <table><thead><tr>
+                <th>التاريخ</th><th>النوع</th><th>العملة</th><th>المبلغ</th><th>الهاتف</th><th>الحالة</th><th>ملاحظة</th>
+              </tr></thead>
+              <tbody id="allOpsTbody"></tbody></table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UNIFIED STATEMENT -->
+      <div id="vAll" class="view">
+        <div class="box" style="margin-bottom:1rem">
+          <div class="box-hd" style="padding:.8rem 1.1rem">
+            <div class="box-title">📋 كشف الحساب الموحد — كل العملاء</div>
+            <span style="font-size:.72rem;color:var(--gray3)" id="allUpdated"></span>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>العميل</th>
+                <th>💵 رصيد الدولار</th>
+                <th>🇱🇧 رصيد الليرة</th>
+                <th>عدد العمليات</th>
+                <th>معلقة</th>
+              </tr></thead>
+              <tbody id="allTbody"><tr class="empty-row"><td colspan="5">لا يوجد عملاء</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="allOpsBox" style="display:none">
+          <div class="box">
+            <div class="box-hd"><div class="box-title" id="allOpsTitle">عمليات العميل</div>
+              <button class="link-btn" onclick="closeAllOps()">✕ إغلاق</button>
+            </div>
+            <div class="tbl-wrap">
+              <table><thead><tr>
+                <th>التاريخ</th><th>النوع</th><th>العملة</th><th>المبلغ</th><th>الهاتف</th><th>الحالة</th><th>ملاحظة</th>
+              </tr></thead>
+              <tbody id="allOpsTbody"></tbody></table>
+            </div>
           </div>
         </div>
       </div>
@@ -667,7 +802,14 @@ tbody tr:hover td{background:var(--gray1)}
     <div class="modal-hd"><h3>إضافة عميل جديد</h3><button class="modal-x" onclick="closeM('mAddC')">✕</button></div>
     <div class="modal-body">
       <div class="fg"><label>اسم العميل *</label><input type="text" id="cName" placeholder="الاسم الكامل"/></div>
-      <div class="fg" style="margin-top:.8rem"><label>الاسم الفرعي / الحساب</label><input type="text" id="cSub" placeholder="مثال: حساب USD"/></div>
+      <div class="fg" style="margin-top:.8rem"><label>الاسم الفرعي / الحساب</label><input type="text" id="cSub" placeholder="مثال: حساب 302"/></div>
+      <div class="fg" style="margin-top:.8rem">
+        <label>عملة الحساب</label>
+        <div class="type-btns">
+          <button class="type-btn on-in" id="cBtnUsd" onclick="pickClientCur('usd')">💵 دولار USD</button>
+          <button class="type-btn" id="cBtnLbp" onclick="pickClientCur('lbp')">🇱🇧 ليرة LBP</button>
+        </div>
+      </div>
       <div class="fg" style="margin-top:.8rem">
         <label>اللون</label>
         <div class="chips" id="colorPick">
@@ -753,16 +895,20 @@ tbody tr:hover td{background:var(--gray1)}
 // ═══════════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════════
-const USERS = {'admin':'1234','مختار':'0000'};
+// Auth handled by Firebase
 let DB = [];          // array of clients
 let activeId = null;  // current client id
 let opType = 'in';    // new op type
+let opCur = 'usd';    // new op currency
+let rcCur = 'usd';    // reconciliation currency
 let eStatus = 'pending'; // edit modal status
 let fType = 'all';    // statement filter
 let fStatus = 'all';
+let fCur = 'all';     // currency filter
 let sortCol = 'date'; // statement sort
 let sortDir = 1;      // 1=asc -1=desc
 let selColor = '#1A3660'; // add client color
+let selClientCur = 'usd'; // add client currency
 
 const FS_DOC = dbFS.collection('makhtar').doc('v4'); // single document holding the whole DB array
 let saveTimer=null;
@@ -798,7 +944,9 @@ function startRealtimeSync(){
     if(JSON.stringify(incoming)===JSON.stringify(DB)) return;
     DB=incoming;
     try{localStorage.setItem("makhtar_v4",snap.data().data)}catch(e){}
-    renderAll();
+    buildSidebar();
+    if(activeId) refreshDash();
+    if(el("vAll").classList.contains("on")) renderAllClients();
     toast("\u{1F504} \u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0645\u0646 \u062C\u0647\u0627\u0632 \u0622\u062E\u0631","ok");
   },function(err){ console.error("Realtime sync error:",err); });
 }
@@ -822,35 +970,59 @@ function fmtD(s){ if(!s)return ''; const[y,m,d]=s.split('-'); return d+'/'+m+'/'
 //  AUTH
 // ═══════════════════════════════════════════════
 async function doLogin(){
-  const u=document.getElementById('lu').value.trim();
-  const p=document.getElementById('lp').value.trim();
+  const email=document.getElementById('lu').value.trim();
+  const pass=document.getElementById('lp').value;
   const err=document.getElementById('loginErr');
-  if(USERS[u]!==undefined && USERS[u]===p){
-    err.style.display='none';
-    document.getElementById('loginWrap').style.display='none';
-    document.getElementById('appWrap').style.display='block';
-    await load();
-    startRealtimeSync();
-    buildSidebar();
-    if(DB.length>0) pickClient(DB[0].id);
-    // set today defaults
-    const td=dateStr(new Date());
-    document.getElementById('opDate').value=td;
-    document.getElementById('opTime').value=nowTime();
-    document.getElementById('rDate').value=td;
-    document.getElementById('rcDate').value=td;
-  } else {
+  const btn=document.getElementById('btnLogin');
+  const loading=document.getElementById('loginLoading');
+  if(!email||!pass){ err.textContent='يرجى إدخال البريد وكلمة المرور'; err.style.display='block'; return; }
+  btn.disabled=true; loading.style.display='block'; err.style.display='none';
+  try{
+    await auth.signInWithEmailAndPassword(email, pass);
+    // onAuthStateChanged will handle the rest
+  } catch(e){
+    btn.disabled=false; loading.style.display='none';
+    const codes={'auth/user-not-found':'لا يوجد حساب بهذا البريد','auth/wrong-password':'كلمة المرور غير صحيحة','auth/invalid-email':'بريد إلكتروني غير صحيح','auth/too-many-requests':'محاولات كثيرة — جرب لاحقاً','auth/invalid-credential':'بيانات غير صحيحة'};
+    err.textContent=codes[e.code]||'خطأ في تسجيل الدخول';
     err.style.display='block';
     document.getElementById('lp').value='';
   }
 }
-function doLogout(){
-  document.getElementById('appWrap').style.display='none';
-  document.getElementById('loginWrap').style.display='flex';
-  document.getElementById('lu').value='';
-  document.getElementById('lp').value='';
-  activeId=null;
+async function onUserLoggedIn(){
+  const user=auth.currentUser;
+  document.getElementById('loginWrap').style.display='none';
+  document.getElementById('appWrap').style.display='block';
+  document.getElementById('btnLogin').disabled=false;
+  document.getElementById('loginLoading').style.display='none';
+  if(user){ const emailEl=document.getElementById('sbUserEmail'); if(emailEl) emailEl.textContent=user.email; }
+  await load();
+  startRealtimeSync();
+  buildSidebar();
+  if(DB.length>0) pickClient(DB[0].id);
+  const td=dateStr(new Date());
+  document.getElementById('opDate').value=td;
+  document.getElementById('opTime').value=nowTime();
+  document.getElementById('rDate').value=td;
+  document.getElementById('rcDate').value=td;
 }
+function doLogout(){
+  auth.signOut().then(()=>{
+    document.getElementById('appWrap').style.display='none';
+    document.getElementById('loginWrap').style.display='flex';
+    document.getElementById('lu').value='';
+    document.getElementById('lp').value='';
+    activeId=null; DB=[]; _syncReady=false;
+  });
+}
+// Listen to auth state
+auth.onAuthStateChanged(user=>{
+  if(user){
+    onUserLoggedIn();
+  } else {
+    document.getElementById('appWrap').style.display='none';
+    document.getElementById('loginWrap').style.display='flex';
+  }
+});
 document.getElementById('lp').onkeydown=e=>{ if(e.key==='Enter')doLogin() };
 document.getElementById('lu').onkeydown=e=>{ if(e.key==='Enter')document.getElementById('lp').focus() };
 
@@ -864,8 +1036,9 @@ function buildSidebar(){
   const el=document.getElementById('clientList');
   if(!DB.length){ el.innerHTML='<div style="text-align:center;padding:1.2rem;color:rgba(255,255,255,.35);font-size:.75rem">لا يوجد عملاء</div>'; return }
   el.innerHTML=DB.map(c=>{
-    const bal=calcBalAll(c);
-    const col=bal>=0?'#4ade80':'#f87171';
+    const balUsd=calcBalAll(c,'usd');
+    const balLbp=calcBalAll(c,'lbp');
+    const col=balUsd>=0&&balLbp>=0?'#4ade80':balUsd<0||balLbp<0?'#f87171':'#facc15';
     const ini=(c.name||'?').slice(0,2);
     const act=c.id===activeId?' active':'';
     return `<div class="ci${act}" onclick="pickClient('${c.id}')">
@@ -874,47 +1047,56 @@ function buildSidebar(){
         <div class="ci-name">${c.name}</div>
         <div class="ci-sub">${c.sub||'حساب عام'}</div>
       </div>
-      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.2rem">
-        <div class="ci-bal" style="color:${col}">${fmt(Math.abs(bal))}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:.15rem">
+        <div style="font-size:.68rem;color:${balUsd>=0?'#4ade80':'#f87171'};font-weight:700">💵 ${fmt(Math.abs(balUsd))}</div>
+        <div style="font-size:.68rem;color:${balLbp>=0?'#4ade80':'#f87171'};font-weight:700">🇱🇧 ${fmtLbp(Math.abs(balLbp))}</div>
         <button class="ci-gear" onclick="event.stopPropagation();openCS('${c.id}')">⚙</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function calcBal(c){
-  if(!c)return 0;
-  const roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
-  return roll+(c.ops||[]).filter(o=>o.status==='confirmed').reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
+function calcBal(c, cur){
+  if(!c) return 0;
+  const isLbpCur = cur==='lbp';
+  const roll = isLbpCur ? (c.rolloverLbp?parseFloat(c.rolloverLbp.amount)||0:0)
+                        : (c.rollover?parseFloat(c.rollover.amount)||0:0);
+  const ops = (c.ops||[]).filter(o=>o.status==='confirmed' && (o.currency||'usd')===cur);
+  return roll + ops.reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount, 0);
 }
-// الرصيد الكلي = الرصيد المؤكد (دخول مؤكد - خروج مؤكد) - قيمة الخروج المعلق
-// (الخروج معلقاً أو مؤكداً هو دين علينا للعميل بنفس الاتجاه، فيُطرح من الرصيد كما يُطرح الخروج المؤكد)
-function calcBalAll(c){
-  if(!c)return 0;
-  const confBal=calcBal(c);
-  const pendOut=(c.ops||[]).filter(o=>o.type==='out'&&o.status==='pending').reduce((s,o)=>s+o.amount,0);
-  return confBal-pendOut;
+function calcBalAll(c, cur){
+  if(!c) return 0;
+  const confBal = calcBal(c, cur);
+  const pendOut = (c.ops||[]).filter(o=>o.type==='out'&&o.status==='pending'&&(o.currency||'usd')===cur).reduce((s,o)=>s+o.amount,0);
+  return confBal - pendOut;
 }
+function fmtLbp(n){
+  if(isNaN(n)) return 'ل.ل 0';
+  const sign=n<0?'-':'';
+  return sign+'ل.ل '+Math.abs(n).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+}
+function fmtCur(n, isLbp){ return isLbp ? fmtLbp(n) : fmt(n); }
 
 // ═══════════════════════════════════════════════
 //  WHATSAPP - إرسال رسالة مطابقة الأرصدة
 // ═══════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════
 function sendBalanceWA(){
-  const c=client(); if(!c){ toast('اختر عميلاً أولاً','err'); return }
-  const bal=calcBalAll(c);
+  const c=client(); if(!c){ toast('\u0627\u062e\u062a\u0631 \u0639\u0645\u064a\u0644\u0627\u064b \u0623\u0648\u0644\u0627\u064b','err'); return }
+  const balU=calcBalAll(c,'usd');
+  const balL=calcBalAll(c,'lbp');
   const now=new Date();
   const dateP=dateStr(now);
   const timeP=now.toTimeString().slice(0,5);
   const accLine=c.sub?`${c.name} - ${c.sub}`:c.name;
-  const side=bal>=0?'(لكم)':'(علينا)';
   const sep='\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501';
-  const e1='\uD83D\uDCCA'; // 📊
-  const e2='\uD83D\uDD50'; // 🕐
-  const e3='\uD83D\uDCB5'; // 💵
-  const e4='\uD83D\uDCE9'; // 📩
-  const e5='\uD83C\uDF39'; // 🌹
-  // fmt() already adds $ sign, strip it for clean display
-  const balStr=fmt(Math.abs(bal)).replace(/^\-?\$?/,'$');
+  const e1='\uD83D\uDCCA';
+  const e2='\uD83D\uDD50';
+  const e4='\uD83D\uDCE9';
+  const e5='\uD83C\uDF39';
+  const sideU=balU>=0?'(\u0644\u0643\u0645)':'(\u0639\u0644\u064a\u0646\u0627)';
+  const sideL=balL>=0?'(\u0644\u0643\u0645)':'(\u0639\u0644\u064a\u0646\u0627)';
   const msg=
 `\u0627\u0644\u0633\u0644\u0627\u0645 \u0639\u0644\u064A\u0643\u0645 \u0648\u0631\u062D\u0645\u0629 \u0627\u0644\u0644\u0647 \u0648\u0628\u0631\u0643\u0627\u062A\u0647
 ${sep}
@@ -926,8 +1108,11 @@ ${accLine}
 \u062A\u0627\u0631\u064A\u062E \u0627\u0644\u0645\u0637\u0627\u0628\u0642\u0629 ${e2}
 ${dateP}   ${timeP}
 ${sep}
-${e3} \u0627\u0644\u0631\u0635\u064A\u062F \u0628\u0627\u0644\u062F\u0648\u0644\u0627\u0631 \u0627\u0644\u0623\u0645\u0631\u064A\u0643\u064A
-${balStr} ${side}
+\uD83D\uDCB5 \u0627\u0644\u0631\u0635\u064a\u062f \u0628\u0627\u0644\u062f\u0648\u0644\u0627\u0631 \u0627\u0644\u0623\u0645\u0631\u064a\u0643\u064a
+${fmt(Math.abs(balU))} ${sideU}
+${sep}
+\uD83C\uDDF1\uD83C\uDDE7 \u0627\u0644\u0631\u0635\u064a\u062f \u0628\u0627\u0644\u0644\u064a\u0631\u0629 \u0627\u0644\u0644\u0628\u0646\u0627\u0646\u064a\u0629
+${fmtLbp(Math.abs(balL))} ${sideL}
 ${sep}
 ${e4} \u0646\u0631\u062C\u0648 \u0627\u0644\u062A\u0643\u0631\u0645 \u0628\u0645\u0631\u0627\u062C\u0639\u0629 \u0627\u0644\u0645\u0637\u0627\u0628\u0642\u0629 \u0648\u062A\u0623\u0643\u064A\u062F\u0647\u0627
 \u0645\u0639 \u0641\u0627\u0626\u0642 \u0627\u0644\u0627\u062D\u062A\u0631\u0627\u0645 \u0648\u0627\u0644\u062A\u0642\u062F\u064A\u0631 ${e5}
@@ -935,8 +1120,6 @@ ${sep}`;
   const url='https://wa.me/?text='+encodeURIComponent(msg);
   window.open(url,'_blank');
 }
-
-// ═══════════════════════════════════════════════
 //  PICK CLIENT
 // ═══════════════════════════════════════════════
 function pickClient(id){
@@ -950,7 +1133,6 @@ function pickClient(id){
   showView('vDash');
   setTabActive('dash');
   refreshDash();
-  // reset op form defaults
   document.getElementById('opDate').value=dateStr(new Date());
   document.getElementById('opTime').value=nowTime();
 }
@@ -958,7 +1140,7 @@ function pickClient(id){
 // ═══════════════════════════════════════════════
 //  VIEWS / TABS
 // ═══════════════════════════════════════════════
-const VIEWS={ dash:'vDash', op:'vOp', pend:'vPend', recon:'vRecon', stmt:'vStmt', pdf:'vPdf' };
+const VIEWS={ dash:'vDash', op:'vOp', pend:'vPend', recon:'vRecon', stmt:'vStmt', pdf:'vPdf', all:'vAll' };
 
 function showView(id){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
@@ -973,6 +1155,12 @@ function setTabActive(tab){
 }
 
 function goTab(tab, btn){
+  if(tab==='all'){
+    setTabActive(tab);
+    showView('vAll');
+    renderAllClients();
+    return;
+  }
   if(!activeId){ toast('اختر عميلاً أولاً','err'); return }
   setTabActive(tab);
   showView(VIEWS[tab]);
@@ -988,24 +1176,41 @@ function goTab(tab, btn){
 function refreshDash(){
   const c=client(); if(!c)return;
   const ops=c.ops||[];
-  const conf=ops.filter(o=>o.status==='confirmed');
-  const pend=ops.filter(o=>o.status==='pending');
-  const inOps=conf.filter(o=>o.type==='in');
-  const outOps=conf.filter(o=>o.type==='out');
-  const tIn=inOps.reduce((s,o)=>s+o.amount,0);
-  const tOut=outOps.reduce((s,o)=>s+o.amount,0);
-  const tPend=pend.reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
-  const roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
-  const bal=roll+tIn-tOut;
-  const balAll=calcBalAll(c);
+  // USD
+  const confU=ops.filter(o=>o.status==='confirmed'&&(o.currency||'usd')==='usd');
+  const pendU=ops.filter(o=>o.status==='pending'&&(o.currency||'usd')==='usd');
+  const tInU=confU.filter(o=>o.type==='in').reduce((s,o)=>s+o.amount,0);
+  const tOutU=confU.filter(o=>o.type==='out').reduce((s,o)=>s+o.amount,0);
+  const tPendU=pendU.reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
+  const rollU=c.rollover?parseFloat(c.rollover.amount)||0:0;
+  const balU=rollU+tInU-tOutU;
+  const balAllU=calcBalAll(c,'usd');
+  // LBP
+  const confL=ops.filter(o=>o.status==='confirmed'&&(o.currency||'usd')==='lbp');
+  const pendL=ops.filter(o=>o.status==='pending'&&(o.currency||'usd')==='lbp');
+  const tInL=confL.filter(o=>o.type==='in').reduce((s,o)=>s+o.amount,0);
+  const tOutL=confL.filter(o=>o.type==='out').reduce((s,o)=>s+o.amount,0);
+  const tPendL=pendL.reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
+  const rollL=c.rolloverLbp?parseFloat(c.rolloverLbp.amount)||0:0;
+  const balL=rollL+tInL-tOutL;
+  const balAllL=calcBalAll(c,'lbp');
 
-  set('kBal',fmt(bal)); el('kBal').className='kpi-val '+(bal>=0?'pos':'neg');
-  set('kRoll',fmt(roll));
-  set('kBalNote',`صافي: ${fmt(tIn-tOut)}`);
-  set('kIn',fmt(tIn)); set('kInN',inOps.length+' عملية');
-  set('kOut',fmt(tOut)); set('kOutN',outOps.length+' عملية');
-  set('kPend',fmt(Math.abs(tPend))); set('kPendN',pend.length+' معلقة');
-  set('kBalAll',fmt(balAll)); el('kBalAll').className='kpi-val '+(balAll>=0?'pos':'neg');
+  // USD KPIs
+  set('kBal',fmt(balU)); el('kBal').className='kpi-val '+(balU>=0?'pos':'neg');
+  set('kRoll',fmt(rollU));
+  set('kBalNote',`صافي: ${fmt(tInU-tOutU)}`);
+  set('kIn',fmt(tInU)); set('kInN',confU.filter(o=>o.type==='in').length+' عملية');
+  set('kOut',fmt(tOutU)); set('kOutN',confU.filter(o=>o.type==='out').length+' عملية');
+  set('kPend',fmt(Math.abs(tPendU))); set('kPendN',pendU.length+' معلقة');
+  set('kBalAll',fmt(balAllU)); el('kBalAll').className='kpi-val '+(balAllU>=0?'pos':'neg');
+  // LBP KPIs
+  set('kBalL',fmtLbp(balL)); el('kBalL').className='kpi-val '+(balL>=0?'pos':'neg');
+  set('kRollL',fmtLbp(rollL));
+  set('kBalNoteL',`صافي: ${fmtLbp(tInL-tOutL)}`);
+  set('kInL',fmtLbp(tInL)); set('kInNL',confL.filter(o=>o.type==='in').length+' عملية');
+  set('kOutL',fmtLbp(tOutL)); set('kOutNL',confL.filter(o=>o.type==='out').length+' عملية');
+  set('kPendL',fmtLbp(Math.abs(tPendL))); set('kPendNL',pendL.length+' معلقة');
+  set('kBalAllL',fmtLbp(balAllL)); el('kBalAllL').className='kpi-val '+(balAllL>=0?'pos':'neg');
 
   // recent 8
   const sorted=[...ops].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,8);
@@ -1015,7 +1220,7 @@ function refreshDash(){
     <tr onclick="openEdit('${o.id}')">
       <td>${fmtD(o.date)} <span style="color:var(--gray3)">${o.time||''}</span></td>
       <td><span class="badge ${o.type==='in'?'b-in':'b-out'}">${o.type==='in'?'↙ دخول':'↗ خروج'}</span></td>
-      <td class="${o.type==='in'?'v-in':'v-out'}">${fmt(o.amount)}</td>
+      <td><span style="font-size:.65rem;color:${(o.currency||'usd')==='lbp'?'#b7770d':'#1a7a4a'}">${(o.currency||'usd')==='lbp'?'🇱🇧':'💵'}</span> <span class="${o.type==='in'?'v-in':'v-out'}">${(o.currency||'usd')==='lbp'?fmtLbp(o.amount):fmt(o.amount)}</span></td>
       <td style="color:var(--gray3)">${o.phone||'—'}</td>
       <td><span class="badge ${o.status==='confirmed'?'b-ok':'b-pend'}">${o.status==='confirmed'?'✅ مؤكد':'⏳ معلق'}</span></td>
     </tr>`).join(''); }
@@ -1027,7 +1232,7 @@ function refreshDash(){
     <div onclick="openEdit('${o.id}')" style="padding:.6rem 1rem;border-bottom:1px solid var(--gray2);cursor:pointer;transition:background .12s" onmouseover="this.style.background='var(--gray1)'" onmouseout="this.style.background=''">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span class="${o.type==='in'?'v-in':'v-out'}" style="font-size:.8rem">${o.type==='in'?'↙ دخول':'↗ خروج'}</span>
-        <span class="${o.type==='in'?'v-in':'v-out'}" style="font-size:.88rem">${fmt(o.amount)}</span>
+        <span class="${o.type==='in'?'v-in':'v-out'}" style="font-size:.88rem">${(o.currency||'usd')==='lbp'?fmtLbp(o.amount):fmt(o.amount)}</span>
       </div>
       <div style="font-size:.68rem;color:var(--gray3);margin-top:.15rem">${fmtD(o.date)} ${o.time||''} ${o.note?'— '+o.note:''}</div>
     </div>`).join(''); }
@@ -1044,6 +1249,23 @@ function pickType(t){
   el('btnIn').className='type-btn'+(t==='in'?' on-in':'');
   el('btnOut').className='type-btn'+(t==='out'?' on-out':'');
 }
+function pickCur(c){
+  opCur=c;
+  el('btnUsd').className='type-btn'+(c==='usd'?' on-in':'');
+  el('btnLbp').className='type-btn'+(c==='lbp'?' on-in':'');
+  el('opAmtLabel').textContent=c==='lbp'?'المبلغ (ل.ل) *':'المبلغ ($) *';
+  el('opAmt').step=c==='lbp'?'1':'0.01';
+  el('opAmt').placeholder=c==='lbp'?'0':'٠.٠٠';
+}
+function pickRcCur(cur){
+  rcCur=cur;
+  const ub=el('rcBtnUsd'), lb=el('rcBtnLbp');
+  if(ub) ub.className='type-btn'+(cur==='usd'?' on-in':'');
+  if(lb) lb.className='type-btn'+(cur==='lbp'?' on-in':'');
+  const wa=el('rcSendWA');
+  if(wa) wa.onclick=()=>sendBalanceWA(cur);
+  renderRecon();
+}
 
 function doSaveOp(){
   if(!activeId){ toast('اختر عميلاً أولاً','err'); return }
@@ -1053,26 +1275,28 @@ function doSaveOp(){
   if(!amtStr||isNaN(amt)||amt<=0){ toast('أدخل مبلغاً صحيحاً أكبر من صفر','err'); return }
   const date=el('opDate').value;
   if(!date){ toast('أدخل التاريخ','err'); return }
-  if(!c.ops)c.ops=[];
-  c.ops.push({
-    id:uid(), type:opType, amount:amt, date,
-    time:el('opTime').value||'00:00',
-    phone:el('opPhone').value.trim(),
-    note:el('opNote').value.trim(),
-    status:'pending'
-  });
-  save();
-  toast('تم حفظ العملية — غير مؤكدة ⏳','inf');
-  doClearOp();
-  // go to dashboard
-  activeId=activeId; // ensure still set
-  buildSidebar();
-  showView('vDash');
-  setTabActive('dash');
-  refreshDash();
+  confirm2('حفظ العملية','هل تريد حفظ هذه العملية؟',()=>{
+    if(!c.ops)c.ops=[];
+    c.ops.push({
+      id:uid(), type:opType, currency:opCur, amount:amt, date,
+      time:el('opTime').value||'00:00',
+      phone:el('opPhone').value.trim(),
+      note:el('opNote').value.trim(),
+      status:'pending'
+    });
+    save();
+    toast('تم حفظ العملية — غير مؤكدة ⏳','inf');
+    doClearOp();
+    activeId=activeId;
+    buildSidebar();
+    showView('vDash');
+    setTabActive('dash');
+    refreshDash();
+  },true);
 }
 
 function doClearOp(){
+  pickCur('usd');
   el('opAmt').value='';
   el('opPhone').value='';
   el('opNote').value='';
@@ -1095,7 +1319,7 @@ function renderPend(){
     <tr onclick="openEdit('${o.id}')">
       <td>${fmtD(o.date)} <span style="color:var(--gray3)">${o.time||''}</span></td>
       <td><span class="badge ${o.type==='in'?'b-in':'b-out'}">${o.type==='in'?'↙ دخول':'↗ خروج'}</span></td>
-      <td class="${o.type==='in'?'v-in':'v-out'}">${fmt(o.amount)}</td>
+      <td><span style="font-size:.65rem;color:${(o.currency||'usd')==='lbp'?'#b7770d':'#1a7a4a'}">${(o.currency||'usd')==='lbp'?'🇱🇧':'💵'}</span> <span class="${o.type==='in'?'v-in':'v-out'}">${(o.currency||'usd')==='lbp'?fmtLbp(o.amount):fmt(o.amount)}</span></td>
       <td style="color:var(--gray3)">${o.phone||'—'}</td>
       <td style="color:var(--gray3);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.note||'—'}</td>
       <td onclick="event.stopPropagation()">
@@ -1121,13 +1345,17 @@ function renderRecon(){
   const conf=ops.filter(o=>o.status==='confirmed');
   const pend=ops.filter(o=>o.status==='pending');
   const roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
-  const sysConf=roll+conf.reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
-  const sysPendOut=pend.filter(o=>o.type==='out').reduce((s,o)=>s+o.amount,0);
-  const sysAll=calcBalAll(c);
+  const confCur=conf.filter(o=>(o.currency||'usd')===rcCur);
+  const pendCur=pend.filter(o=>(o.currency||'usd')===rcCur);
+  const rollCur=rcCur==='lbp'?(c.rolloverLbp?parseFloat(c.rolloverLbp.amount)||0:0):roll;
+  const sysConf=rollCur+confCur.reduce((s,o)=>o.type==='in'?s+o.amount:s-o.amount,0);
+  const sysPendOut=pendCur.filter(o=>o.type==='out').reduce((s,o)=>s+o.amount,0);
+  const sysAll=calcBalAll(c,rcCur);
 
-  set('rcSysConf',fmt(sysConf));
-  set('rcSysPend',fmt(sysPendOut));
-  set('rcSysAll',fmt(sysAll));
+  const rcLbp=(rcCur==='lbp');
+  set('rcSysConf',fmtCur(sysConf,rcLbp));
+  set('rcSysPend',fmtCur(sysPendOut,rcLbp));
+  set('rcSysAll',fmtCur(sysAll,rcLbp));
   el('rcSysAll').className='kpi-val tea';
 
   if(!el('rcDate').value) el('rcDate').value=dateStr(new Date());
@@ -1142,21 +1370,23 @@ function rcCalcDiff(){
   if(actualStr===''){ box.innerHTML='<div style="font-size:.85rem;color:var(--gray3)">أدخل الرصيد الفعلي لعرض الفرق</div>'; return }
   const actual=parseFloat(actualStr);
   if(isNaN(actual)){ box.innerHTML='<div style="font-size:.85rem;color:var(--red)">قيمة غير صحيحة</div>'; return }
-  const sysAll=calcBalAll(c);
+  const sysAll=calcBalAll(c,rcCur);
   const diff=actual-sysAll;
+  const dLbp=(rcCur==='lbp');
+  const thresh=dLbp?1:0.005;
   let msg, color;
-  if(Math.abs(diff)<0.005){ msg='✅ مطابقة تامة — لا فرق'; color='var(--green)'; }
-  else if(diff>0){ msg=`⬆️ زيادة في الفعلي بمقدار ${fmt(diff)} (الفعلي أكبر من المتوقع)`; color='var(--teal)'; }
-  else{ msg=`⬇️ نقص في الفعلي بمقدار ${fmt(Math.abs(diff))} (الفعلي أقل من المتوقع)`; color='var(--red)'; }
+  if(Math.abs(diff)<thresh){ msg='✅ مطابقة تامة — لا فرق'; color='var(--green)'; }
+  else if(diff>0){ msg=`⬆️ زيادة في الفعلي بمقدار ${fmtCur(diff,dLbp)}`; color='var(--teal)'; }
+  else{ msg=`⬇️ نقص في الفعلي بمقدار ${fmtCur(Math.abs(diff),dLbp)}`; color='var(--red)'; }
   box.innerHTML=`
     <div style="display:flex;justify-content:space-between;margin-bottom:.5rem;font-size:.85rem">
-      <span>الرصيد المتوقع (دفاتر):</span><b>${fmt(sysAll)}</b>
+      <span>الرصيد المتوقع (دفاتر):</span><b>${fmtCur(sysAll,dLbp)}</b>
     </div>
     <div style="display:flex;justify-content:space-between;margin-bottom:.5rem;font-size:.85rem">
-      <span>الرصيد الفعلي المُدخل:</span><b>${fmt(actual)}</b>
+      <span>الرصيد الفعلي المُدخل:</span><b>${fmtCur(actual,dLbp)}</b>
     </div>
     <div style="display:flex;justify-content:space-between;font-size:.95rem;font-weight:800;color:${color};border-top:1px solid var(--gray2);padding-top:.5rem">
-      <span>الفرق:</span><span>${fmt(diff)}</span>
+      <span>الفرق:</span><span>${fmtCur(diff,dLbp)}</span>
     </div>
     <div style="margin-top:.5rem;font-size:.8rem;color:${color};font-weight:700">${msg}</div>`;
 }
@@ -1166,20 +1396,23 @@ function doSaveRecon(){
   const actualStr=el('rcActual').value.trim();
   const actual=parseFloat(actualStr);
   if(actualStr===''||isNaN(actual)){ toast('أدخل الرصيد الفعلي','err'); return }
-  const sysAll=calcBalAll(c);
+  const sysAll=calcBalAll(c,rcCur);
   const diff=actual-sysAll;
   if(!c.reconciliations)c.reconciliations=[];
   c.reconciliations.push({
     id:uid(),
+    currency:rcCur,
     date:el('rcDate').value||dateStr(new Date()),
     expected:sysAll,
     actual,
     diff,
     note:el('rcNote').value.trim()
   });
-  save();
-  toast('تم حفظ المطابقة ✓','ok');
-  renderReconHistory();
+  confirm2('حفظ المطابقة','هل تريد حفظ هذه المطابقة؟',()=>{
+    save();
+    toast('تم حفظ المطابقة ✓','ok');
+    renderReconHistory();
+  },true);
 }
 
 function doClearRecon(){
@@ -1195,13 +1428,15 @@ function renderReconHistory(){
   const tb=el('reconTbody');
   if(!list.length){ tb.innerHTML='<tr class="empty-row"><td colspan="6">لا توجد مطابقات سابقة</td></tr>'; return }
   tb.innerHTML=list.map(r=>{
-    const ok=Math.abs(r.diff)<0.005;
+    const rLbp=(r.currency||'usd')==='lbp';
+    const thresh=rLbp?1:0.005;
+    const ok=Math.abs(r.diff)<thresh;
     const dCol=ok?'var(--green)':(r.diff>0?'var(--teal)':'var(--red)');
     return `<tr>
-      <td>${fmtD(r.date)}</td>
-      <td>${fmt(r.expected)}</td>
-      <td>${fmt(r.actual)}</td>
-      <td style="color:${dCol};font-weight:800">${ok?'✅ مطابق':fmt(r.diff)}</td>
+      <td>${fmtD(r.date)} <span style="font-size:.65rem;color:${rLbp?'#b7770d':'#1a7a4a'}">${rLbp?'🇱🇧':'💵'}</span></td>
+      <td>${fmtCur(r.expected,rLbp)}</td>
+      <td>${fmtCur(r.actual,rLbp)}</td>
+      <td style="color:${dCol};font-weight:800">${ok?'✅ مطابق':fmtCur(r.diff,rLbp)}</td>
       <td style="color:var(--gray3);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.note||'—'}</td>
       <td><button class="btn btn-red btn-sm" onclick="delRecon('${r.id}')">🗑</button></td>
     </tr>`;
@@ -1225,6 +1460,11 @@ function setFT(t,btn){
   document.querySelectorAll('[data-ft]').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   renderStmt();
+}
+function setFC(v,btn){
+  fCur=v;
+  document.querySelectorAll('.chip[data-fc]').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on'); renderStmt();
 }
 function setFS(s,btn){
   fStatus=s;
@@ -1260,6 +1500,7 @@ function renderStmt(){
   if(fType!=='all')ops=ops.filter(o=>o.type===fType);
   if(fStatus==='confirmed')ops=ops.filter(o=>o.status==='confirmed');
   if(fStatus==='pending')ops=ops.filter(o=>o.status==='pending');
+  if(fCur!=='all')ops=ops.filter(o=>(o.currency||'usd')===fCur);
   if(q)ops=ops.filter(o=>(o.phone||'').toLowerCase().includes(q)||(o.note||'').toLowerCase().includes(q)||(o.date||'').includes(q));
   // sort
   ops.sort((a,b)=>{
@@ -1269,29 +1510,39 @@ function renderStmt(){
     else{va=a.date+a.time;vb=b.date+b.time}
     return sortDir*(va<vb?-1:va>vb?1:0);
   });
-  // running balance (always chronological regardless of sort)
-  const chrono=[...(c.ops||[])].filter(o=>o.status==='confirmed').sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-  const runMap={};
-  let run=c.rollover?parseFloat(c.rollover.amount)||0:0;
-  chrono.forEach(o=>{ run+=o.type==='in'?o.amount:-o.amount; runMap[o.id]=run });
+  // running balances per currency
+  const chronoU=[...(c.ops||[])].filter(o=>o.status==='confirmed'&&(o.currency||'usd')==='usd').sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  const chronoL=[...(c.ops||[])].filter(o=>o.status==='confirmed'&&(o.currency||'usd')==='lbp').sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  const runMapU={}, runMapL={};
+  let runU=c.rollover?parseFloat(c.rollover.amount)||0:0;
+  let runL=c.rolloverLbp?parseFloat(c.rolloverLbp.amount)||0:0;
+  chronoU.forEach(o=>{ runU+=o.type==='in'?o.amount:-o.amount; runMapU[o.id]=runU });
+  chronoL.forEach(o=>{ runL+=o.type==='in'?o.amount:-o.amount; runMapL[o.id]=runL });
 
   // totals
-  const tIn=ops.filter(o=>o.type==='in').reduce((s,o)=>s+o.amount,0);
-  const tOut=ops.filter(o=>o.type==='out').reduce((s,o)=>s+o.amount,0);
-  el('fInfo').textContent=ops.length?`${ops.length} نتيجة — دخول: ${fmt(tIn)} | خروج: ${fmt(tOut)} | الصافي: ${fmt(tIn-tOut)}`:'';
+  const tInU=ops.filter(o=>o.type==='in'&&(o.currency||'usd')==='usd').reduce((s,o)=>s+o.amount,0);
+  const tOutU=ops.filter(o=>o.type==='out'&&(o.currency||'usd')==='usd').reduce((s,o)=>s+o.amount,0);
+  const tInL=ops.filter(o=>o.type==='in'&&(o.currency||'usd')==='lbp').reduce((s,o)=>s+o.amount,0);
+  const tOutL=ops.filter(o=>o.type==='out'&&(o.currency||'usd')==='lbp').reduce((s,o)=>s+o.amount,0);
+  let info='';
+  if(tInU||tOutU) info+=`💵 دخول: ${fmt(tInU)} | خروج: ${fmt(tOutU)} | صافي: ${fmt(tInU-tOutU)}  `;
+  if(tInL||tOutL) info+=`🇱🇧 دخول: ${fmtLbp(tInL)} | خروج: ${fmtLbp(tOutL)} | صافي: ${fmtLbp(tInL-tOutL)}`;
+  el('fInfo').textContent=ops.length?`${ops.length} نتيجة  ${info}`:'';
 
   const tb=el('stmtTbody');
-  if(!ops.length){ tb.innerHTML='<tr class="empty-row"><td colspan="7">لا توجد نتائج تطابق الفلتر</td></tr>'; return }
+  if(!ops.length){ tb.innerHTML='<tr class="empty-row"><td colspan="8">لا توجد نتائج تطابق الفلتر</td></tr>'; return }
   tb.innerHTML=ops.map(o=>{
-    const rb=runMap[o.id];
-    const rbStr=rb!==undefined?`<span class="${rb>=0?'v-in':'v-out'}">${fmt(rb)}</span>`:'<span style="color:var(--gray3)">—</span>';
+    const isLbpOp=(o.currency||'usd')==='lbp';
+    const rb=isLbpOp?runMapL[o.id]:runMapU[o.id];
+    const rbStr=rb!==undefined?`<span class="${rb>=0?'v-in':'v-out'}">${isLbpOp?fmtLbp(rb):fmt(rb)}</span>`:'<span style="color:var(--gray3)">—</span>';
     return `<tr onclick="openEdit('${o.id}')">
       <td>${fmtD(o.date)} <span style="color:var(--gray3)">${o.time||''}</span></td>
       <td><span class="badge ${o.type==='in'?'b-in':'b-out'}">${o.type==='in'?'↙ دخول':'↗ خروج'}</span></td>
-      <td class="${o.type==='in'?'v-in':'v-out'}">${fmt(o.amount)}</td>
+      <td><span style="font-size:.72rem;font-weight:700;padding:.1rem .4rem;border-radius:4px;background:${isLbpOp?'#fef9e7':'#e8f8ef'};color:${isLbpOp?'#b7770d':'#1a7a4a'}">${isLbpOp?'🇱🇧 ل.ل':'💵 $'}</span></td>
+      <td class="${o.type==='in'?'v-in':'v-out'}">${isLbpOp?fmtLbp(o.amount):fmt(o.amount)}</td>
       <td style="color:var(--gray3)">${o.phone||'—'}</td>
       <td><span class="badge ${o.status==='confirmed'?'b-ok':'b-pend'}">${o.status==='confirmed'?'✅':'⏳'}</span></td>
-      <td style="color:var(--gray3);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.note||'—'}</td>
+      <td style="color:var(--gray3);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.note||'—'}</td>
       <td>${rbStr}</td>
     </tr>`;
   }).join('');
@@ -1330,12 +1581,14 @@ function doSaveEdit(){
   const o=(c.ops||[]).find(x=>x.id===id); if(!o)return;
   const amt=parseFloat(el('eAmt').value);
   if(isNaN(amt)||amt<=0){ toast('مبلغ غير صحيح','err'); return }
-  o.date=el('eDate').value; o.time=el('eTime').value;
-  o.amount=amt; o.phone=el('ePhone').value.trim();
-  o.note=el('eNote').value.trim(); o.status=eStatus;
-  save(); closeM('mEdit'); buildSidebar();
-  refreshDash(); renderPend(); renderStmt();
-  toast('تم الحفظ ✓','ok');
+  confirm2('حفظ التعديل','هل تريد حفظ التعديلات على هذه العملية؟',()=>{
+    o.date=el('eDate').value; o.time=el('eTime').value;
+    o.amount=amt; o.phone=el('ePhone').value.trim();
+    o.note=el('eNote').value.trim(); o.status=eStatus;
+    save(); closeM('mEdit'); buildSidebar();
+    refreshDash(); renderPend(); renderStmt();
+    toast('تم الحفظ ✓','ok');
+  },true);
 }
 
 function doDelOp(){
@@ -1361,9 +1614,11 @@ function openRollover(){
 }
 function doSaveRoll(){
   const c=client(); if(!c)return;
-  c.rollover={amount:parseFloat(el('rAmt').value)||0,date:el('rDate').value,note:el('rNote').value.trim()};
-  save(); closeM('mRoll'); buildSidebar(); refreshDash();
-  toast('تم حفظ الرصيد المدور ✓','ok');
+  confirm2('حفظ الرصيد المدور','هل تريد حفظ الرصيد المدور؟',()=>{
+    c.rollover={amount:parseFloat(el('rAmt').value)||0,date:el('rDate').value,note:el('rNote').value.trim()};
+    save(); closeM('mRoll'); buildSidebar(); refreshDash();
+    toast('تم حفظ الرصيد المدور ✓','ok');
+  },true);
 }
 function doRemRoll(){
   const c=client(); if(!c)return;
@@ -1385,13 +1640,22 @@ function pickCol(col,btn){
   document.querySelectorAll('#colorPick .chip').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
 }
+function pickClientCur(cur){
+  selClientCur=cur;
+  const usdBtn=el('cBtnUsd'), lbpBtn=el('cBtnLbp');
+  if(!usdBtn||!lbpBtn) return;
+  usdBtn.className='type-btn'+(cur==='usd'?' on-in':'');
+  lbpBtn.className='type-btn'+(cur==='lbp'?' on-in':'');
+}
 function doAddClient(){
   const name=el('cName').value.trim();
   if(!name){ toast('أدخل اسم العميل','err'); return }
-  const c={id:uid(),name,sub:el('cSub').value.trim(),color:selColor,ops:[],rollover:null,reconciliations:[]};
-  DB.push(c); save(); closeM('mAddC'); buildSidebar();
-  toast('تمت الإضافة ✓','ok');
-  pickClient(c.id);
+  confirm2('إضافة عميل','هل تريد إضافة هذا العميل؟',()=>{
+    const c={id:uid(),name,sub:el('cSub').value.trim(),color:selColor,ops:[],rollover:null,reconciliations:[]};
+    DB.push(c); save(); closeM('mAddC'); buildSidebar();
+    toast('تمت الإضافة ✓','ok');
+    pickClient(c.id);
+  },true);
 }
 
 // ═══════════════════════════════════════════════
@@ -1405,10 +1669,12 @@ function openCS(id){
 }
 function doSaveCS(){
   const c=client(); if(!c)return;
-  c.name=el('csName').value.trim()||c.name; c.sub=el('csSub').value.trim();
-  save(); buildSidebar();
-  el('tbName').textContent=c.name; el('tbSub').textContent=c.sub;
-  closeM('mCS'); toast('تم الحفظ ✓','ok');
+  confirm2('حفظ بيانات العميل','هل تريد حفظ التعديلات على بيانات العميل؟',()=>{
+    c.name=el('csName').value.trim()||c.name; c.sub=el('csSub').value.trim();
+    save(); buildSidebar();
+    el('tbName').textContent=c.name; el('tbSub').textContent=c.sub;
+    closeM('mCS'); toast('تم الحفظ ✓','ok');
+  },true);
 }
 function askDelClient(){
   closeM('mCS');
@@ -1529,11 +1795,67 @@ document.querySelectorAll('.overlay').forEach(o=>{
   o.addEventListener('click',e=>{ if(e.target===o)o.classList.remove('open') });
 });
 
-function confirm2(title,msg,cb){
+function confirm2(title,msg,cb,isSave=false){
   el('mConfTitle').textContent=title;
   el('mConfMsg').textContent=msg;
-  el('mConfYes').onclick=()=>{ closeM('mConfirm'); cb() };
+  const yesBtn=el('mConfYes');
+  yesBtn.className=isSave?'btn btn-navy':'btn btn-red';
+  yesBtn.textContent=isSave?'نعم، احفظ':'تأكيد';
+  yesBtn.onclick=()=>{ closeM('mConfirm'); cb() };
   openM('mConfirm');
+}
+
+// ═══════════════════════════════════════════════
+//  UNIFIED STATEMENT
+// ═══════════════════════════════════════════════
+function renderAllClients(){
+  const tb=el('allTbody');
+  if(!DB.length){ tb.innerHTML='<tr class="empty-row"><td colspan="5">لا يوجد عملاء</td></tr>'; return }
+  const now=new Date().toLocaleString('ar-LB');
+  set('allUpdated','آخر تحديث: '+now);
+  tb.innerHTML=DB.map(c=>{
+    const bU=calcBalAll(c,'usd'), bL=calcBalAll(c,'lbp');
+    const ops=(c.ops||[]).length;
+    const pend=(c.ops||[]).filter(o=>o.status==='pending').length;
+    const cU=bU>=0?'var(--green)':'var(--red)', cL=bL>=0?'var(--green)':'var(--red)';
+    return `<tr style="cursor:pointer" onclick="showAllOps('${c.id}')">
+      <td><b>${c.name}</b>${c.sub?'<br><span style="font-size:.72rem;color:var(--gray3)">'+c.sub+'</span>':''}</td>
+      <td style="color:${cU};font-weight:700">💵 ${fmt(bU)} <span style="font-size:.68rem;color:var(--gray3)">${bU>=0?'(لكم)':'(علينا)'}</span></td>
+      <td style="color:${cL};font-weight:700">🇱🇧 ${fmtLbp(bL)} <span style="font-size:.68rem;color:var(--gray3)">${bL>=0?'(لكم)':'(علينا)'}</span></td>
+      <td style="color:var(--gray3);font-size:.8rem">${ops} عملية</td>
+      <td>${pend?`<span class="badge b-pend">⏳ ${pend}</span>`:'<span style="color:var(--green)">✔</span>'}</td>
+    </tr>`;
+  }).join('');
+  el('allOpsBox').style.display='none';
+}
+
+function showAllOps(cid){
+  const c=DB.find(x=>x.id===cid); if(!c)return;
+  const ops=[...(c.ops||[])].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+  set('allOpsTitle',c.name+(c.sub?' — '+c.sub:''));
+  const tb=el('allOpsTbody');
+  if(!ops.length){ tb.innerHTML='<tr class="empty-row"><td colspan="7">لا توجد عمليات</td></tr>'; }
+  else {
+    tb.innerHTML=ops.map(o=>{
+      const cur=o.currency||'usd';
+      const isLbp=cur==='lbp';
+      return `<tr>
+        <td>${fmtD(o.date)} <span style="color:var(--gray3)">${o.time||''}</span></td>
+        <td><span class="badge ${o.type==='in'?'b-in':'b-out'}">${o.type==='in'?'↙ دخول':'↗ خروج'}</span></td>
+        <td><span style="font-size:.75rem;font-weight:700;color:${isLbp?'#b7770d':'#1a7a4a'}">${isLbp?'🇱🇧 ل.ل':'💵 $'}</span></td>
+        <td class="${o.type==='in'?'v-in':'v-out'}">${isLbp?fmtLbp(o.amount):fmt(o.amount)}</td>
+        <td style="color:var(--gray3)">${o.phone||'—'}</td>
+        <td><span class="badge ${o.status==='confirmed'?'b-ok':'b-pend'}">${o.status==='confirmed'?'✅ مؤكد':'⏳ معلق'}</span></td>
+        <td style="color:var(--gray3)">${o.note||'—'}</td>
+      </tr>`;
+    }).join('');
+  }
+  el('allOpsBox').style.display='block';
+  el('allOpsBox').scrollIntoView({behavior:'smooth'});
+}
+
+function closeAllOps(){
+  el('allOpsBox').style.display='none';
 }
 
 // ═══════════════════════════════════════════════
